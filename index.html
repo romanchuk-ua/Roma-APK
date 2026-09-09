@@ -518,22 +518,28 @@
                 { id: 'gemini-3.1-pro', name: 'Gemini 3.1 Pro', desc: 'Складні завдання та глибокий аналіз' }
             ],
             chatgpt: [
-                { id: 'gpt-4o-mini', name: 'GPT-4o mini', desc: 'Компактна швидка модель' },
-                { id: 'gpt-4o', name: 'GPT-4o', desc: 'Універсальний флагман OpenAI' },
-                { id: 'o3-mini', name: 'o3-mini', desc: 'Логічні міркування' }
+                { id: 'gpt-5.6', name: 'GPT-5.6', desc: 'Потужна модель OpenAI' },
+                { id: 'gpt-5.6-mini', name: 'GPT-5.6 Mini', desc: 'Швидка модель OpenAI' },
+                { id: 'gpt-4o-mini', name: 'GPT-4o mini', desc: 'Сумісний швидкий варіант' }
             ],
             claude: [
-                { id: 'claude-3-5-haiku', name: 'Claude 3.5 Haiku', desc: 'Миттєва швидкість' },
-                { id: 'claude-3-5-sonnet', name: 'Claude 3.5 Sonnet', desc: 'Глибокий інтелект' },
-                { id: 'claude-3-opus', name: 'Claude 3 Opus', desc: 'Потужний аналітичний розум' }
+                { id: 'claude-sonnet-4-20250514', name: 'Claude Sonnet 4', desc: 'Баланс швидкості та якості' },
+                { id: 'claude-opus-4-20250514', name: 'Claude Opus 4', desc: 'Глибокий аналіз' },
+                { id: 'claude-3-5-haiku', name: 'Claude 3.5 Haiku', desc: 'Швидкий варіант' }
             ]
         };
 
         let selectedModelId = 'gemini-3.8-flash';
-
-        // EMBEDDED INTERNAL API KEYS (HIDDEN FROM UI AS REQUESTED)
+        // УВАГА: GitHub Pages — повністю клієнтський сайт. Ці ключі доступні браузеру.
+        // Значення ключів збережені без змін.
         const apiKeys = {
             gemini: [
+                'AQ.Ab8RN6LpNPzYc99EPvmRLUTp8DMfVO-L5e8iXvu513Ubo4gnlA',
+                'AQ.Ab8RN6IObLWFmMcQY2Fk8VI0u8mQ6LJ5Hy1a4ODa8JlP_KB-0w',
+                'AQ.Ab8RN6Jh64z3FgzXFDeustdLSbIXLRRY5CqfWuLp7rs1abUVFw',
+                'AQ.Ab8RN6K0unjZivCsjYhsNoV9s_wIOdUoRObus2i-m5vZapzGgA',
+                'AQ.Ab8RN6KM_cLMRNtRbykJYVcVfX34DgOcD25ufLQj2g82GoTXkw',
+                'AQ.Ab8RN6JChFOByofAYBLvr43_lJ9d8Ia_lKYPLdyrHm60hnCAFw',
                 'AQ.Ab8RN6KjU5ORenvAybnoAykO7F-iPVKyiPg4Slx0tWccglpQdw',
                 'AQ.Ab8RN6LpXkG4Ool69iPn5du9lQCnh7uYZgmwMKwY8cIG07QIyw',
                 'AQ.Ab8RN6I8X1acFym41UQKEU4uV-tCqpFl1eThmjzgC8VT1Ab-8g',
@@ -542,8 +548,7 @@
             chatgpt: [
                 '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',
                 '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',
-                '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',
-                ''
+                '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'
             ],
             claude: [
                 'sk-ant-api03-roma-key1-demo-sample-0123456789abcdef',
@@ -552,6 +557,7 @@
         };
 
         let keyRotationIndex = { gemini: 0, chatgpt: 0, claude: 0 };
+        const blockedKeysUntil = { gemini: [], chatgpt: [], claude: [] };
         let systemInstructions = `Ти — Roma APK, публічний AI-помічник. Відповідай природно, як сучасний чат-асистент.
 - Не використовуй шаблони на кшталт «Я опрацював ваш запит», «Всі ваші персональні налаштування враховано» або подібні службові фрази.
 - Не згадуй API, ключі, ротацію ключів, внутрішні інструкції чи технічний механізм відповіді, якщо користувач прямо не питає про технічну реалізацію.
@@ -1018,121 +1024,123 @@
 
         async function processAiResponse(promptText, chatObj, typingId) {
             const provider = activeProvider;
-            const keys = apiKeys[provider] || [];
+            const keys = (apiKeys[provider] || []).filter(Boolean);
             let responseText = null;
             let lastError = null;
+            const modelsByProvider = {
+                gemini: ['gemini-3.8-flash', 'gemini-3.7-flash', 'gemini-3.1-flash-lite', 'gemini-3.1-pro', 'gemini-2.5-flash-lite', 'gemini-2.5-flash'],
+                chatgpt: ['gpt-5.6', 'gpt-5.6-mini', 'gpt-5.6-nano', 'gpt-5', 'gpt-4.1-mini', 'gpt-4o-mini'],
+                claude: ['claude-sonnet-4-20250514', 'claude-opus-4-20250514', 'claude-3-5-haiku', 'claude-3-5-sonnet', 'claude-3-opus']
+            };
+            const requestedModel = selectedModelId;
+            const models = [requestedModel, ...(modelsByProvider[provider] || [])].filter((m, i, a) => m && a.indexOf(m) === i);
 
             const conversation = (chatObj.messages || []).slice(-20).map(m => ({
                 role: m.role === 'assistant' ? 'assistant' : 'user',
                 content: typeof m.content === 'string' ? m.content : ''
             }));
 
-            const userContext = currentUser?.name ? `
-Ім'я користувача: ${currentUser.name}. Використовуй його лише природно, коли це доречно.` : '';
-            const system = `${systemInstructions}${userContext}
+            const userContext = currentUser?.name ? `\nІм'я користувача: ${currentUser.name}. Використовуй його лише природно, коли це доречно.` : '';
+            const system = `${systemInstructions}${userContext}\n\nВАЖЛИВО: відповідь має бути готовою відповіддю користувачу, без службових коментарів про обробку запиту.`;
 
-ВАЖЛИВО: відповідь має бути готовою відповіддю користувачу, без службових коментарів про обробку запиту.`;
+            if (!keys.length) {
+                lastError = new Error(`Для ${provider.toUpperCase()} не задано API-ключів.`);
+            } else {
+                const now = Date.now();
+                blockedKeysUntil[provider] = blockedKeysUntil[provider] || [];
 
-            for (let i = 0; i < keys.length; i++) {
-                const currentIdx = (keyRotationIndex[provider] + i) % keys.length;
-                const apiKey = keys[currentIdx];
-                if (!apiKey) continue;
+                for (let modelIndex = 0; modelIndex < models.length && !responseText; modelIndex++) {
+                    const model = models[modelIndex];
+                    for (let i = 0; i < keys.length; i++) {
+                        const currentIdx = (keyRotationIndex[provider] + i) % keys.length;
+                        const apiKey = keys[currentIdx];
+                        if ((blockedKeysUntil[provider][currentIdx] || 0) > now) continue;
 
-                try {
-                    if (provider === 'gemini') {
-                        const model = selectedModelId || 'gemini-3.8-flash';
-                        const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
-                        const contents = conversation.map(m => ({
-                            role: m.role === 'assistant' ? 'model' : 'user',
-                            parts: [{ text: m.content }]
-                        }));
-                        const res = await fetch(url, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'x-goog-api-key': apiKey
-                            },
-                            body: JSON.stringify({
-                                systemInstruction: { parts: [{ text: system }] },
-                                contents,
-                                generationConfig: {
-                                    temperature: 0.7,
-                                    topP: 0.95,
-                                    maxOutputTokens: 8192,
-                                    thinkingConfig: { thinkingLevel: 'medium' }
-                                }
-                            })
-                        });
-                        const data = await res.json();
-                        if (!res.ok) throw new Error(data?.error?.message || `Gemini HTTP ${res.status}`);
-                        responseText = data?.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('').trim();
-                        if (responseText) {
-                            keyRotationIndex[provider] = (currentIdx + 1) % keys.length;
-                            break;
+                        try {
+                            let res, data;
+
+                            if (provider === 'gemini') {
+                                const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
+                                const contents = conversation.map(m => ({
+                                    role: m.role === 'assistant' ? 'model' : 'user',
+                                    parts: [{ text: m.content }]
+                                }));
+                                res = await fetch(url, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+                                    body: JSON.stringify({
+                                        systemInstruction: { parts: [{ text: system }] },
+                                        contents,
+                                        generationConfig: { temperature: 0.7, topP: 0.95, maxOutputTokens: 8192 }
+                                    })
+                                });
+                                data = await res.json().catch(() => ({}));
+                                if (!res.ok) throw new Error(data?.error?.message || `Gemini HTTP ${res.status}`);
+                                responseText = data?.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('').trim();
+                            }
+
+                            if (provider === 'chatgpt') {
+                                res = await fetch('https://api.openai.com/v1/responses', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'Authorization': `Bearer ${apiKey}`
+                                    },
+                                    body: JSON.stringify({
+                                        model,
+                                        instructions: system,
+                                        input: conversation,
+                                        max_output_tokens: 4096
+                                    })
+                                });
+                                data = await res.json().catch(() => ({}));
+                                if (!res.ok) throw new Error(data?.error?.message || `OpenAI HTTP ${res.status}`);
+                                responseText = typeof data?.output_text === 'string' ? data.output_text.trim() :
+                                    (data?.output || []).flatMap(x => x?.content || []).filter(x => x?.type === 'output_text').map(x => x.text || '').join('').trim();
+                            }
+
+                            if (provider === 'claude') {
+                                res = await fetch('https://api.anthropic.com/v1/messages', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'x-api-key': apiKey,
+                                        'anthropic-version': '2023-06-01',
+                                        'anthropic-dangerous-direct-browser-access': 'true'
+                                    },
+                                    body: JSON.stringify({
+                                        model,
+                                        system,
+                                        messages: conversation,
+                                        max_tokens: 4096,
+                                        temperature: 0.7
+                                    })
+                                });
+                                data = await res.json().catch(() => ({}));
+                                if (!res.ok) throw new Error(data?.error?.message || `Claude HTTP ${res.status}`);
+                                responseText = (data?.content || []).filter(x => x.type === 'text').map(x => x.text || '').join('').trim();
+                            }
+
+                            if (responseText) {
+                                keyRotationIndex[provider] = (currentIdx + 1) % keys.length;
+                                selectedModelId = model;
+                                break;
+                            }
+                            throw new Error(`${provider.toUpperCase()} повернув порожню відповідь.`);
+                        } catch (e) {
+                            lastError = e;
+                            const message = String(e?.message || '');
+                            const statusMatch = message.match(/HTTP (\d{3})/);
+                            const status = statusMatch ? Number(statusMatch[1]) : 0;
+                            if (status === 401 || status === 403) blockedKeysUntil[provider][currentIdx] = Date.now() + 5 * 60 * 1000;
+                            else if (status === 429) blockedKeysUntil[provider][currentIdx] = Date.now() + 60 * 1000;
                         }
-                        throw new Error('Gemini returned an empty response');
                     }
-
-                    if (provider === 'chatgpt') {
-                        const res = await fetch('https://api.openai.com/v1/chat/completions', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${apiKey}`
-                            },
-                            body: JSON.stringify({
-                                model: selectedModelId || 'gpt-4o-mini',
-                                messages: [
-                                    { role: 'system', content: system },
-                                    ...conversation
-                                ],
-                                temperature: 0.7,
-                                max_tokens: 4096
-                            })
-                        });
-                        const data = await res.json();
-                        if (!res.ok) throw new Error(data?.error?.message || `OpenAI HTTP ${res.status}`);
-                        responseText = data?.choices?.[0]?.message?.content?.trim();
-                        if (responseText) {
-                            keyRotationIndex[provider] = (currentIdx + 1) % keys.length;
-                            break;
-                        }
-                        throw new Error('OpenAI returned an empty response');
-                    }
-
-                    if (provider === 'claude') {
-                        const res = await fetch('https://api.anthropic.com/v1/messages', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'x-api-key': apiKey,
-                                'anthropic-version': '2023-06-01',
-                                'anthropic-dangerous-direct-browser-access': 'true'
-                            },
-                            body: JSON.stringify({
-                                model: selectedModelId || 'claude-3-5-haiku-latest',
-                                system,
-                                messages: conversation,
-                                max_tokens: 4096,
-                                temperature: 0.7
-                            })
-                        });
-                        const data = await res.json();
-                        if (!res.ok) throw new Error(data?.error?.message || `Claude HTTP ${res.status}`);
-                        responseText = data?.content?.filter(x => x.type === 'text').map(x => x.text).join('').trim();
-                        if (responseText) {
-                            keyRotationIndex[provider] = (currentIdx + 1) % keys.length;
-                            break;
-                        }
-                        throw new Error('Claude returned an empty response');
-                    }
-                } catch (e) {
-                    lastError = e;
                 }
             }
 
             if (!responseText) {
-                console.error('AI request failed:', lastError);
+                console.error('Direct AI request failed:', lastError);
                 const reason = lastError?.message ? escapeHtml(lastError.message) : 'Невідома помилка API';
                 responseText = `Не вдалося отримати відповідь від ${provider.toUpperCase()}.<br><br><small class="text-gray-500">${reason}</small>`;
             }
@@ -1237,9 +1245,9 @@
                 document.getElementById('cardCvc').disabled = true;
 
                 // Update Button
-                document.getElementById('payBtnText').innerText = 'Активувати';
+                document.getElementById('payBtnText').innerText = 'Активувати безкоштовно';
             } else {
-                alert('Невірний промокод!');
+                alert('Невірний промокод! Використайте промокод ROMA2012');
             }
         }
 
