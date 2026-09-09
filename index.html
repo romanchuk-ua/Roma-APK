@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Roma APK - AI Assistant</title>
     
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -12,12 +13,15 @@
             theme: {
                 extend: {
                     colors: {
-                        bgDark: '#131314',
-                        bgDarkSec: '#1e1f20',
+                        bgDark: '#0f0f11',
+                        bgDarkSec: '#1a1b1e',
+                        bgDarkCard: '#232429',
                         bgLight: '#ffffff',
-                        bgLightSec: '#f0f4f9',
-                        accent: '#a8c7fa',
-                        accentDark: '#0b57d0'
+                        bgLightSec: '#f3f4f6',
+                        accentBlue: '#3b82f6',
+                        accentPurple: '#8b5cf6',
+                        accentGreen: '#10b981',
+                        accentOrange: '#f97316'
                     },
                     fontFamily: {
                         sans: ['Inter', 'sans-serif'],
@@ -26,14 +30,18 @@
             }
         }
     </script>
+    
+    <!-- Google Fonts & Material Icons -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
 
+    <!-- Google Identity Services (Google Sign-In) -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+
     <style>
-        /* Custom Styles & Scrollbar */
         body { font-family: 'Inter', sans-serif; }
         
-        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background-color: rgba(156, 163, 175, 0.3); border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background-color: rgba(156, 163, 175, 0.5); }
@@ -52,370 +60,568 @@
         .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
 
         @keyframes typing {
-            0%, 100% { transform: translateY(0); opacity: 0.5; }
+            0%, 100% { transform: translateY(0); opacity: 0.4; }
             50% { transform: translateY(-4px); opacity: 1; }
         }
 
         .modal-enter { animation: fadeIn 0.2s ease-out forwards; }
-        .slide-up { animation: slideUp 0.3s ease-out forwards; }
+        .slide-up { animation: slideUp 0.25s ease-out forwards; }
 
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes slideUp { from { transform: translateY(15px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
-        /* Auto-resizing textarea */
         textarea { resize: none; overflow-y: hidden; }
     </style>
 </head>
 <body class="bg-bgLight text-gray-800 dark:bg-bgDark dark:text-gray-200 transition-colors duration-300 overflow-hidden h-screen flex">
 
-    <!-- Auth Modal -->
-    <div id="authModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm hidden modal-enter">
-        <div class="bg-white dark:bg-[#1e1f20] p-8 rounded-2xl shadow-2xl w-full max-w-md mx-4 slide-up">
-            <div class="text-center mb-8">
-                <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">Увійти в Roma APK</h2>
-                <p class="text-gray-500 dark:text-gray-400">Для збереження вашої історії та налаштувань</p>
+    <!-- Auth / Google Login Modal -->
+    <div id="authModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md modal-enter">
+        <div class="bg-white dark:bg-bgDarkSec p-8 rounded-3xl shadow-2xl w-full max-w-md mx-4 text-center slide-up border border-gray-200 dark:border-gray-800">
+            <div class="w-16 h-16 bg-gradient-to-tr from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-purple-500/20">
+                <span class="material-symbols-outlined text-white text-3xl">auto_awesome</span>
             </div>
-            <form id="authForm" class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium mb-1">Ваше ім'я</label>
-                    <input type="text" id="authName" required class="w-full px-4 py-3 rounded-xl bg-gray-100 dark:bg-[#131314] border border-gray-300 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-accentDark dark:focus:ring-accent transition-all" placeholder="Наприклад, Володимир">
+            <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">Roma APK</h2>
+            <p class="text-gray-500 dark:text-gray-400 text-sm mb-8">Авторизуйтесь через ваш акаунт Google для збереження налаштувань, ключів та історії чатів.</p>
+            
+            <!-- Google Sign-In Container -->
+            <div class="flex flex-col items-center justify-center gap-4">
+                <div id="g_id_onload"
+                     data-client_id="YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com"
+                     data-callback="handleGoogleSignIn"
+                     data-auto_prompt="false">
                 </div>
-                <div>
-                    <label class="block text-sm font-medium mb-1">Email</label>
-                    <input type="email" id="authEmail" required class="w-full px-4 py-3 rounded-xl bg-gray-100 dark:bg-[#131314] border border-gray-300 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-accentDark dark:focus:ring-accent transition-all" placeholder="name@example.com">
+                <div class="g_id_signin" 
+                     data-type="standard" 
+                     data-size="large" 
+                     data-theme="outline" 
+                     data-text="sign_in_with" 
+                     data-shape="pill" 
+                     data-logo_alignment="left">
                 </div>
-                <button type="submit" class="w-full py-3 mt-4 bg-accentDark dark:bg-accent text-white dark:text-gray-900 font-semibold rounded-xl hover:opacity-90 transition-opacity">
-                    Продовжити
-                </button>
-            </form>
+
+                <!-- Fallback Manual Login if Client ID is not configured yet -->
+                <div class="w-full border-t border-gray-200 dark:border-gray-800 my-2 pt-4">
+                    <p class="text-xs text-gray-400 mb-3">Або увійдіть як тестовий користувач:</p>
+                    <button onclick="demoLogin()" class="w-full py-3 px-4 bg-gray-100 hover:bg-gray-200 dark:bg-bgDarkCard dark:hover:bg-gray-800 text-gray-800 dark:text-gray-200 text-sm font-semibold rounded-xl transition-all flex items-center justify-center gap-2">
+                        <span class="material-symbols-outlined text-sm">person</span>
+                        Швидкий тестовий вхід (Володимир)
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
     <!-- Mobile Sidebar Overlay -->
-    <div id="sidebarOverlay" class="fixed inset-0 bg-black/50 z-30 hidden md:hidden" onclick="toggleSidebar()"></div>
+    <div id="sidebarOverlay" class="fixed inset-0 bg-black/60 z-30 hidden md:hidden backdrop-blur-sm" onclick="toggleSidebar()"></div>
 
     <!-- Sidebar -->
-    <aside id="sidebar" class="fixed md:static inset-y-0 left-0 z-40 w-72 bg-bgLightSec dark:bg-bgDarkSec flex flex-col transition-transform duration-300 transform -translate-x-full md:translate-x-0 h-full">
-        <!-- New Chat Btn -->
-        <div class="p-4">
-            <button onclick="startNewChat()" class="w-full flex items-center gap-3 px-4 py-3 bg-white dark:bg-[#131314] hover:bg-gray-50 dark:hover:bg-gray-800 rounded-full shadow-sm border border-gray-200 dark:border-gray-800 transition-colors">
-                <span class="material-symbols-outlined">add</span>
-                <span class="font-medium">Новий чат</span>
+    <aside id="sidebar" class="fixed md:static inset-y-0 left-0 z-40 w-72 bg-bgLightSec dark:bg-bgDarkSec flex flex-col transition-transform duration-300 transform -translate-x-full md:translate-x-0 h-full border-r border-gray-200 dark:border-gray-800/60">
+        <!-- Brand & New Chat -->
+        <div class="p-4 space-y-3">
+            <div class="flex items-center justify-between px-2">
+                <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-blue-500">sparkles</span>
+                    <span class="font-bold text-lg tracking-wide text-gray-900 dark:text-white">Roma APK</span>
+                </div>
+                <span id="currentProviderBadge" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-500 border border-blue-500/20 uppercase">Gemini</span>
+            </div>
+            
+            <button onclick="startNewChat()" class="w-full flex items-center gap-3 px-4 py-3 bg-white dark:bg-bgDarkCard hover:bg-gray-50 dark:hover:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800 transition-all group">
+                <span class="material-symbols-outlined text-blue-500 group-hover:rotate-90 transition-transform duration-300">add</span>
+                <span class="font-medium text-sm">Новий чат</span>
             </button>
         </div>
 
-        <!-- Chat History (Mock) -->
-        <div class="flex-1 overflow-y-auto p-4 space-y-2">
-            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 ml-2">Сьогодні</p>
-            <div class="px-4 py-2 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-xl cursor-pointer truncate text-sm">Тестовий запит до ШІ</div>
-            <div class="px-4 py-2 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-xl cursor-pointer truncate text-sm">Як написати код на JS?</div>
+        <!-- Chat History -->
+        <div class="flex-1 overflow-y-auto px-3 py-2 space-y-1">
+            <p class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider px-3 mb-2">Нещодавні діалоги</p>
+            <div class="px-3 py-2.5 hover:bg-gray-200 dark:hover:bg-bgDarkCard rounded-xl cursor-pointer truncate text-sm flex items-center gap-2.5 text-gray-700 dark:text-gray-300">
+                <span class="material-symbols-outlined text-sm text-gray-400">chat_bubble_outline</span>
+                Тестовий запит до ШІ
+            </div>
+            <div class="px-3 py-2.5 hover:bg-gray-200 dark:hover:bg-bgDarkCard rounded-xl cursor-pointer truncate text-sm flex items-center gap-2.5 text-gray-700 dark:text-gray-300">
+                <span class="material-symbols-outlined text-sm text-gray-400">code</span>
+                Як написати код на JS?
+            </div>
         </div>
 
         <!-- Bottom Actions -->
-        <div class="p-4 space-y-2 border-t border-gray-200 dark:border-gray-800">
-            <button onclick="openUpgradeModal()" class="w-full flex items-center justify-between px-4 py-3 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-xl hover:opacity-90 transition-opacity shadow-lg">
-                <div class="flex items-center gap-3">
-                    <span class="material-symbols-outlined">workspace_premium</span>
-                    <span class="font-medium font-semibold">Змінити план</span>
+        <div class="p-3 space-y-2 border-t border-gray-200 dark:border-gray-800">
+            <button onclick="openUpgradeModal()" class="w-full flex items-center justify-between px-4 py-3 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white rounded-2xl hover:opacity-95 transition-opacity shadow-lg shadow-indigo-500/20">
+                <div class="flex items-center gap-2.5">
+                    <span class="material-symbols-outlined text-yellow-300">workspace_premium</span>
+                    <span class="font-semibold text-sm">Змінити план</span>
                 </div>
+                <span class="text-[11px] bg-white/20 px-2 py-0.5 rounded-full font-bold">PRO</span>
             </button>
             
-            <button onclick="openSettingsModal()" class="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-xl transition-colors">
-                <div class="w-8 h-8 rounded-full bg-accent text-accentDark dark:bg-gray-700 dark:text-gray-300 flex items-center justify-center font-bold text-sm" id="userAvatar">R</div>
+            <button onclick="openSettingsModal()" class="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-gray-200 dark:hover:bg-bgDarkCard rounded-2xl transition-colors">
+                <img id="userAvatar" class="w-9 h-9 rounded-full object-cover border border-gray-300 dark:border-gray-700" src="https://placehold.co/100x100/3b82f6/ffffff?text=R" alt="Avatar">
                 <div class="flex-1 text-left truncate">
-                    <p class="text-sm font-medium" id="userNameDisplay">Користувач</p>
-                    <p class="text-xs text-gray-500" id="userPlanDisplay">Безкоштовний план</p>
+                    <p class="text-xs font-semibold text-gray-900 dark:text-white truncate" id="userNameDisplay">Користувач</p>
+                    <p class="text-[11px] text-gray-500 truncate" id="userEmailDisplay">user@gmail.com</p>
                 </div>
-                <span class="material-symbols-outlined text-gray-500">settings</span>
+                <span class="material-symbols-outlined text-gray-400">settings</span>
             </button>
         </div>
     </aside>
 
-    <!-- Main Content -->
-    <main class="flex-1 flex flex-col relative h-full w-full max-w-full">
-        <!-- Mobile Header -->
-        <header class="md:hidden flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800">
-            <button onclick="toggleSidebar()" class="p-2 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-full">
+    <!-- Main Content Area -->
+    <main class="flex-1 flex flex-col relative h-full w-full max-w-full bg-bgLight dark:bg-bgDark">
+        <!-- Mobile Top Header -->
+        <header class="md:hidden flex items-center justify-between p-3 border-b border-gray-200 dark:border-gray-800 bg-bgLightSec dark:bg-bgDarkSec">
+            <button onclick="toggleSidebar()" class="p-2 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-xl">
                 <span class="material-symbols-outlined">menu</span>
             </button>
-            <h1 class="font-semibold text-lg">Roma APK</h1>
-            <button onclick="startNewChat()" class="p-2 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-full">
+            <span class="font-bold text-base bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-purple-500">Roma APK</span>
+            <button onclick="startNewChat()" class="p-2 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-xl">
                 <span class="material-symbols-outlined">add</span>
             </button>
         </header>
 
-        <!-- Chat Container -->
-        <div id="chatArea" class="flex-1 overflow-y-auto p-4 md:p-8 flex flex-col space-y-6 pb-32">
-            <!-- Empty State -->
-            <div id="emptyState" class="m-auto flex flex-col items-center justify-center text-center slide-up">
-                <div class="w-20 h-20 bg-gradient-to-br from-blue-400 to-purple-500 rounded-2xl rotate-12 mb-6 flex items-center justify-center shadow-lg">
-                    <span class="material-symbols-outlined text-white text-4xl -rotate-12">robot_2</span>
+        <!-- Chat Area / Welcome Banner -->
+        <div id="chatArea" class="flex-1 overflow-y-auto p-4 md:p-8 flex flex-col space-y-6 pb-40">
+            <!-- Initial Empty State -->
+            <div id="emptyState" class="m-auto flex flex-col items-center justify-center text-center slide-up max-w-xl py-12">
+                <div class="w-20 h-20 bg-gradient-to-tr from-blue-500 via-indigo-500 to-purple-600 rounded-3xl flex items-center justify-center shadow-xl shadow-indigo-500/20 mb-6">
+                    <span class="material-symbols-outlined text-white text-4xl">auto_awesome</span>
                 </div>
-                <h1 class="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-purple-600 dark:from-accent dark:to-purple-400 mb-4">Roma APK</h1>
-                <p class="text-gray-500 dark:text-gray-400 max-w-md text-lg">Ваш універсальний ШІ-помічник. Запитуйте будь-що, завантажуйте файли та обирайте улюблену модель.</p>
+                <h1 id="welcomeHeading" class="text-3xl md:text-5xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-blue-500 via-indigo-400 to-purple-500 mb-3 tracking-tight">
+                    Roma APK
+                </h1>
+                <p id="welcomeSubtext" class="text-gray-500 dark:text-gray-400 text-sm md:text-base max-w-md">
+                    Ваш персональний мульти-модельний ШІ. Обирайте між Gemini, ChatGPT та Claude.
+                </p>
             </div>
         </div>
 
-        <!-- Input Area fixed at bottom -->
-        <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-bgLight via-bgLight to-transparent dark:from-bgDark dark:via-bgDark p-4 pt-10">
-            <div class="max-w-4xl mx-auto relative">
+        <!-- Input Panel Fixed at Bottom -->
+        <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-bgLight via-bgLight to-transparent dark:from-bgDark dark:via-bgDark p-4 pt-8">
+            <div class="max-w-3xl mx-auto relative">
                 
-                <!-- Model Selector Dropdown (Absolute above input) -->
-                <div class="absolute bottom-full left-4 mb-2 z-20">
-                    <button id="modelSelectBtn" onclick="toggleModelDropdown()" class="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-bgDarkSec hover:bg-gray-200 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full text-sm font-medium transition-colors shadow-sm">
-                        <span id="currentModelDisplay">Gemini Flash</span>
-                        <span class="material-symbols-outlined text-sm">expand_more</span>
-                    </button>
-                    
-                    <!-- Dropdown Menu -->
-                    <div id="modelDropdown" class="hidden absolute bottom-full left-0 mb-2 w-64 bg-white dark:bg-bgDarkSec border border-gray-200 dark:border-gray-700 rounded-2xl shadow-xl overflow-hidden modal-enter pb-2">
-                        <div class="px-4 py-3 text-xs font-semibold text-gray-500 bg-gray-50 dark:bg-black/20 uppercase tracking-wider">Оберіть модель</div>
-                        <div class="max-h-60 overflow-y-auto py-1">
-                            <!-- Gemini -->
-                            <div class="px-4 py-1.5 text-xs text-blue-500 dark:text-accent font-semibold mt-2">Gemini</div>
-                            <div class="model-option px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer text-sm flex items-center justify-between" onclick="selectModel('Gemini Flash-Lite')">Flash-Lite</div>
-                            <div class="model-option px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer text-sm flex items-center justify-between" onclick="selectModel('Gemini Flash')">Flash</div>
-                            <div class="model-option px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer text-sm flex items-center justify-between" onclick="selectModel('Gemini Pro')">Pro</div>
-                            <div class="model-option px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer text-sm flex items-center justify-between" onclick="selectModel('Gemini Розширені можливості')">Розширені можливості</div>
-                            
-                            <!-- ChatGPT -->
-                            <div class="px-4 py-1.5 text-xs text-green-600 dark:text-green-400 font-semibold mt-2 border-t border-gray-100 dark:border-gray-700">ChatGPT</div>
-                            <div class="model-option px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer text-sm flex items-center justify-between" onclick="selectModel('GPT-3.5')">GPT-3.5</div>
-                            <div class="model-option px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer text-sm flex items-center justify-between" onclick="selectModel('GPT-4o mini')">GPT-4o mini</div>
-                            <div class="model-option px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer text-sm flex items-center justify-between" onclick="selectModel('GPT-4o')">GPT-4o <span class="text-xs bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 px-2 py-0.5 rounded-full">Pro</span></div>
-                            
-                            <!-- Claude -->
-                            <div class="px-4 py-1.5 text-xs text-orange-500 dark:text-orange-400 font-semibold mt-2 border-t border-gray-100 dark:border-gray-700">Claude</div>
-                            <div class="model-option px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer text-sm flex items-center justify-between" onclick="selectModel('Claude Haiku')">Haiku</div>
-                            <div class="model-option px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer text-sm flex items-center justify-between" onclick="selectModel('Claude Sonnet')">Sonnet</div>
-                            <div class="model-option px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer text-sm flex items-center justify-between" onclick="selectModel('Claude Opus')">Opus <span class="text-xs bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 px-2 py-0.5 rounded-full">Max</span></div>
+                <!-- Attached Files Preview Container -->
+                <div id="attachedFilesContainer" class="hidden flex flex-wrap gap-2 mb-2 px-2"></div>
+
+                <!-- Model Picker Bar Above Input -->
+                <div class="flex items-center justify-between mb-2 px-1">
+                    <div class="relative">
+                        <button id="modelSelectBtn" onclick="toggleModelDropdown()" class="flex items-center gap-2 px-3.5 py-1.5 bg-gray-100 dark:bg-bgDarkSec hover:bg-gray-200 dark:hover:bg-bgDarkCard border border-gray-300 dark:border-gray-700 rounded-xl text-xs font-semibold transition-all shadow-sm">
+                            <span id="currentProviderDot" class="w-2 h-2 rounded-full bg-blue-500"></span>
+                            <span id="currentModelDisplay">Flash-Lite</span>
+                            <span class="material-symbols-outlined text-xs text-gray-400">expand_more</span>
+                        </button>
+
+                        <!-- Dynamic Model Dropdown Menu -->
+                        <div id="modelDropdown" class="hidden absolute bottom-full left-0 mb-2 w-56 bg-white dark:bg-bgDarkSec border border-gray-200 dark:border-gray-700 rounded-2xl shadow-2xl overflow-hidden modal-enter z-30">
+                            <div class="px-3 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-wider bg-gray-50 dark:bg-black/30 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center">
+                                <span id="dropdownProviderTitle">Моделі Gemini</span>
+                                <button onclick="openSettingsModal()" class="text-blue-500 hover:underline">Змінити ШІ</button>
+                            </div>
+                            <!-- Dynamic Options Container -->
+                            <div id="modelOptionsList" class="py-1 max-h-56 overflow-y-auto">
+                                <!-- Filled dynamically by JS -->
+                            </div>
                         </div>
                     </div>
+
+                    <span class="text-[11px] text-gray-400 hidden sm:inline-block">Ротація до 4 API ключів</span>
                 </div>
 
                 <!-- Input Box -->
-                <div class="flex items-end bg-gray-100 dark:bg-bgDarkSec rounded-[24px] p-2 shadow-sm border border-gray-200 dark:border-gray-700/50">
-                    <button class="p-3 text-gray-500 hover:text-gray-800 dark:hover:text-white rounded-full transition-colors" title="Прикріпити файл">
-                        <span class="material-symbols-outlined">attach_file</span>
-                    </button>
+                <div class="flex items-end bg-gray-100 dark:bg-bgDarkSec rounded-3xl p-2 border border-gray-200 dark:border-gray-700/60 shadow-lg focus-within:border-blue-500 dark:focus-within:border-blue-500 transition-colors">
                     
-                    <textarea id="userInput" rows="1" class="flex-1 bg-transparent border-none focus:ring-0 resize-none py-3 px-2 max-h-32 text-gray-900 dark:text-white placeholder-gray-500" placeholder="Запитайте Roma APK..." oninput="autoResize(this)" onkeydown="handleEnter(event)"></textarea>
-                    
-                    <div class="flex items-center gap-1 p-1 pb-2">
-                        <button class="p-2 text-gray-500 hover:text-gray-800 dark:hover:text-white rounded-full transition-colors">
-                            <span class="material-symbols-outlined">mic</span>
+                    <!-- File Upload Button -->
+                    <label class="p-2.5 text-gray-400 hover:text-gray-700 dark:hover:text-white rounded-full cursor-pointer transition-colors flex items-center justify-center">
+                        <input type="file" id="fileInput" class="hidden" multiple onchange="handleFileSelect(event)">
+                        <span class="material-symbols-outlined text-xl">attach_file</span>
+                    </label>
+
+                    <!-- Text Area -->
+                    <textarea id="userInput" rows="1" class="flex-1 bg-transparent border-none focus:outline-none focus:ring-0 resize-none py-2.5 px-2 max-h-36 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" placeholder="Запитайте Roma APK..." oninput="autoResize(this)" onkeydown="handleEnter(event)"></textarea>
+
+                    <div class="flex items-center gap-1 p-1">
+                        <!-- Microphone Icon -->
+                        <button class="p-2 text-gray-400 hover:text-gray-700 dark:hover:text-white rounded-full transition-colors" title="Голосовий ввід">
+                            <span class="material-symbols-outlined text-xl">mic</span>
                         </button>
-                        <button onclick="sendMessage()" id="sendBtn" class="p-2 bg-gray-300 text-gray-500 dark:bg-gray-700 dark:text-gray-400 rounded-full transition-all duration-300 flex items-center justify-center">
-                            <span class="material-symbols-outlined">arrow_upward</span>
+                        
+                        <!-- Send Button -->
+                        <button onclick="sendMessage()" id="sendBtn" class="p-2.5 bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-full transition-all duration-200 flex items-center justify-center">
+                            <span class="material-symbols-outlined text-lg">arrow_upward</span>
                         </button>
                     </div>
                 </div>
+
                 <div class="text-center mt-2">
-                    <span class="text-[10px] text-gray-500">Roma APK може робити помилки. Перевіряйте важливу інформацію.</span>
+                    <span class="text-[11px] text-gray-400">Roma APK може робити помилки. Перевіряйте важливу інформацію.</span>
                 </div>
             </div>
         </div>
     </main>
 
-    <!-- Upgrade Modal -->
-    <div id="upgradeModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm hidden modal-enter">
-        <div class="bg-white dark:bg-[#1e1f20] p-6 md:p-8 rounded-3xl shadow-2xl w-full max-w-4xl mx-4 overflow-y-auto max-h-[90vh] slide-up">
+    <!-- Settings & API Key Rotation Modal -->
+    <div id="settingsModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm hidden modal-enter">
+        <div class="bg-white dark:bg-bgDarkSec p-6 md:p-8 rounded-3xl shadow-2xl w-full max-w-2xl mx-4 overflow-y-auto max-h-[90vh] slide-up border border-gray-200 dark:border-gray-800">
             <div class="flex justify-between items-center mb-6">
-                <h2 class="text-3xl font-bold text-gray-900 dark:text-white">Змінити план</h2>
-                <button onclick="closeUpgradeModal()" class="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition-colors">
+                <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-blue-500">settings</span>
+                    <h2 class="text-xl font-bold text-gray-900 dark:text-white">Налаштування та Ключі</h2>
+                </div>
+                <button onclick="closeSettingsModal()" class="p-1.5 text-gray-400 hover:text-gray-900 dark:hover:text-white rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
                     <span class="material-symbols-outlined">close</span>
                 </button>
             </div>
-            
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <!-- Basic -->
-                <div class="border border-gray-200 dark:border-gray-700 rounded-2xl p-6 flex flex-col">
-                    <h3 class="text-xl font-bold mb-2">Звичайний</h3>
-                    <p class="text-gray-500 text-sm mb-6">Базові можливості для щоденних задач.</p>
-                    <div class="text-3xl font-bold mb-6">Безкоштовно</div>
-                    <button class="w-full py-2 bg-gray-200 dark:bg-gray-700 rounded-xl font-medium mb-6 cursor-not-allowed">Поточний план</button>
-                    <ul class="space-y-3 text-sm flex-1">
-                        <li class="flex items-start gap-2"><span class="material-symbols-outlined text-green-500 text-sm">check</span> Доступ до базових моделей</li>
-                        <li class="flex items-start gap-2"><span class="material-symbols-outlined text-green-500 text-sm">check</span> Стандартна швидкість</li>
-                        <li class="flex items-start gap-2"><span class="material-symbols-outlined text-gray-400 text-sm">close</span> <span class="text-gray-400">Аналіз файлів</span></li>
-                    </ul>
-                </div>
 
-                <!-- Pro -->
-                <div class="border-2 border-accentDark dark:border-accent rounded-2xl p-6 flex flex-col relative transform md:-translate-y-4 shadow-xl dark:shadow-accent/10">
-                    <div class="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-accentDark dark:bg-accent text-white dark:text-gray-900 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide">Популярний</div>
-                    <h3 class="text-xl font-bold mb-2 text-accentDark dark:text-accent">Roma APK Pro</h3>
-                    <p class="text-gray-500 text-sm mb-6">Розширені можливості для професіоналів.</p>
-                    <div class="text-3xl font-bold mb-6">$10<span class="text-sm font-normal text-gray-500">/міс</span></div>
-                    <button class="w-full py-2 bg-accentDark dark:bg-accent text-white dark:text-gray-900 rounded-xl font-semibold mb-6 hover:opacity-90 transition-opacity" onclick="upgradePlan('pro')">Оновити до Pro</button>
-                    <ul class="space-y-3 text-sm flex-1">
-                        <li class="flex items-start gap-2"><span class="material-symbols-outlined text-green-500 text-sm">check</span> Доступ до Gemini Pro, GPT-4o</li>
-                        <li class="flex items-start gap-2"><span class="material-symbols-outlined text-green-500 text-sm">check</span> Швидкі відповіді (Пріоритет)</li>
-                        <li class="flex items-start gap-2"><span class="material-symbols-outlined text-green-500 text-sm">check</span> Аналіз фото та документів</li>
-                        <li class="flex items-start gap-2"><span class="material-symbols-outlined text-gray-400 text-sm">close</span> <span class="text-gray-400">Генерація відео/музики</span></li>
-                    </ul>
-                </div>
-
-                <!-- Max -->
-                <div class="border border-purple-500 rounded-2xl p-6 flex flex-col bg-gradient-to-br from-transparent to-purple-50 dark:to-purple-900/10">
-                    <h3 class="text-xl font-bold mb-2 text-purple-600 dark:text-purple-400">Roma APK Max</h3>
-                    <p class="text-gray-500 text-sm mb-6">Максимум можливостей та відсутність лімітів.</p>
-                    <div class="text-3xl font-bold mb-6">$25<span class="text-sm font-normal text-gray-500">/міс</span></div>
-                    <button class="w-full py-2 bg-purple-600 text-white rounded-xl font-semibold mb-6 hover:opacity-90 transition-opacity shadow-lg shadow-purple-500/30" onclick="upgradePlan('max')">Оновити до Max</button>
-                    <ul class="space-y-3 text-sm flex-1">
-                        <li class="flex items-start gap-2"><span class="material-symbols-outlined text-purple-500 text-sm">star</span> <b>Усі моделі</b> (вкл. Opus)</li>
-                        <li class="flex items-start gap-2"><span class="material-symbols-outlined text-purple-500 text-sm">star</span> Безлімітні запити</li>
-                        <li class="flex items-start gap-2"><span class="material-symbols-outlined text-purple-500 text-sm">star</span> Генерація зображень, відео та музики</li>
-                        <li class="flex items-start gap-2"><span class="material-symbols-outlined text-purple-500 text-sm">star</span> Кастомні агенти</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Settings Modal -->
-    <div id="settingsModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm hidden modal-enter">
-        <div class="bg-white dark:bg-[#1e1f20] p-6 md:p-8 rounded-3xl shadow-2xl w-full max-w-lg mx-4 slide-up">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Налаштування профілю</h2>
-                <button onclick="closeSettingsModal()" class="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition-colors">
-                    <span class="material-symbols-outlined">close</span>
-                </button>
-            </div>
-            
             <div class="space-y-6">
-                <!-- Theme Toggle -->
-                <div class="flex items-center justify-between">
-                    <div>
-                        <h4 class="font-medium">Тема оформлення</h4>
-                        <p class="text-sm text-gray-500">Світла або темна тема</p>
-                    </div>
-                    <button id="themeToggleBtn" onclick="toggleTheme()" class="p-2 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
-                        <span class="material-symbols-outlined" id="themeIcon">light_mode</span>
-                    </button>
-                </div>
-
-                <!-- System Instructions -->
+                <!-- Main AI Provider Selection -->
                 <div>
-                    <label class="block font-medium mb-1">Системні інструкції (Пам'ять ШІ)</label>
-                    <p class="text-xs text-gray-500 mb-2">Наприклад: "Звертайся до мене Володимир, відповідай коротко."</p>
-                    <textarea id="systemPrompt" rows="4" class="w-full px-4 py-3 rounded-xl bg-gray-100 dark:bg-[#131314] border border-gray-300 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-accentDark dark:focus:ring-accent transition-all resize-none text-sm" placeholder="Введіть інструкції..."></textarea>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">Основний ШІ Провайдер</label>
+                    <div class="grid grid-cols-3 gap-3">
+                        <button type="button" onclick="setProvider('gemini')" id="providerBtnGemini" class="p-3 rounded-2xl border flex flex-col items-center gap-2 transition-all">
+                            <span class="material-symbols-outlined text-blue-500">sparkles</span>
+                            <span class="font-semibold text-xs">Google Gemini</span>
+                        </button>
+                        <button type="button" onclick="setProvider('chatgpt')" id="providerBtnChatGPT" class="p-3 rounded-2xl border flex flex-col items-center gap-2 transition-all">
+                            <span class="material-symbols-outlined text-green-500">smart_toy</span>
+                            <span class="font-semibold text-xs">OpenAI ChatGPT</span>
+                        </button>
+                        <button type="button" onclick="setProvider('claude')" id="providerBtnClaude" class="p-3 rounded-2xl border flex flex-col items-center gap-2 transition-all">
+                            <span class="material-symbols-outlined text-orange-500">psychology</span>
+                            <span class="font-semibold text-xs">Anthropic Claude</span>
+                        </button>
+                    </div>
                 </div>
 
-                <button onclick="saveSettings()" class="w-full py-3 bg-accentDark dark:bg-accent text-white dark:text-gray-900 font-semibold rounded-xl hover:opacity-90 transition-opacity">
+                <!-- API Key Rotation Section -->
+                <div class="bg-gray-50 dark:bg-bgDarkCard p-4 rounded-2xl border border-gray-200 dark:border-gray-800 space-y-4">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <h4 class="font-semibold text-sm text-gray-900 dark:text-white">Ротація API-ключів для <span id="keySectionProviderName" class="text-blue-500 uppercase">GEMINI</span></h4>
+                            <p class="text-xs text-gray-400">Вкажіть до 4 ключів з різних акаунтів. Система буде автоматично переключати їх при вичерпанні лімітів.</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="keyInputsContainer">
+                        <div>
+                            <label class="block text-[11px] text-gray-400 mb-1">Ключ 1 (Основний)</label>
+                            <input type="password" id="apiKey0" class="w-full px-3 py-2 rounded-xl bg-white dark:bg-bgDarkSec border border-gray-300 dark:border-gray-700 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="AIzaSy... / sk-proj-...">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] text-gray-400 mb-1">Ключ 2 (Резервний)</label>
+                            <input type="password" id="apiKey1" class="w-full px-3 py-2 rounded-xl bg-white dark:bg-bgDarkSec border border-gray-300 dark:border-gray-700 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="AIzaSy... / sk-proj-...">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] text-gray-400 mb-1">Ключ 3 (Резервний)</label>
+                            <input type="password" id="apiKey2" class="w-full px-3 py-2 rounded-xl bg-white dark:bg-bgDarkSec border border-gray-300 dark:border-gray-700 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="AIzaSy... / sk-proj-...">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] text-gray-400 mb-1">Ключ 4 (Резервний)</label>
+                            <input type="password" id="apiKey3" class="w-full px-3 py-2 rounded-xl bg-white dark:bg-bgDarkSec border border-gray-300 dark:border-gray-700 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="AIzaSy... / sk-proj-...">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Custom Instructions / AI Memory -->
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1">Персональні інструкції для ШІ (Пам'ять)</label>
+                    <p class="text-xs text-gray-500 mb-2">Наприклад: "Звертайся до мене Володимир, кодуй англійською, будь лаконічним."</p>
+                    <textarea id="systemPrompt" rows="3" class="w-full px-3.5 py-2.5 rounded-2xl bg-gray-50 dark:bg-bgDarkCard border border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none text-xs text-gray-900 dark:text-white" placeholder="Введіть ваші інструкції..."></textarea>
+                </div>
+
+                <!-- Save Settings Button -->
+                <button onclick="saveSettings()" id="saveSettingsBtn" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-2xl transition-all text-sm shadow-lg shadow-blue-500/25">
                     Зберегти налаштування
                 </button>
             </div>
         </div>
     </div>
 
-    <script>
-        // State
-        let currentUser = null;
-        let selectedModel = 'Gemini Flash';
-        let isDarkMode = true;
-        let chatStarted = false;
-        let systemInstructions = '';
+    <!-- Upgrade Plan Modal -->
+    <div id="upgradeModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm hidden modal-enter">
+        <div class="bg-white dark:bg-bgDarkSec p-6 md:p-8 rounded-3xl shadow-2xl w-full max-w-4xl mx-4 overflow-y-auto max-h-[90vh] slide-up border border-gray-200 dark:border-gray-800">
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Оберіть свій план Roma APK</h2>
+                    <p class="text-xs text-gray-400">Розкрийте весь потенціал штучного інтелекту без обмежень</p>
+                </div>
+                <button onclick="closeUpgradeModal()" class="p-2 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-full transition-colors">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Free Plan -->
+                <div class="border border-gray-200 dark:border-gray-800 rounded-2xl p-6 flex flex-col bg-gray-50/50 dark:bg-bgDarkCard/50">
+                    <h3 class="text-lg font-bold mb-1">Звичайний</h3>
+                    <p class="text-gray-500 text-xs mb-4">Для базових щоденних відповідей.</p>
+                    <div class="text-3xl font-extrabold mb-6">Безкоштовно</div>
+                    <button class="w-full py-2.5 bg-gray-200 dark:bg-gray-800 text-gray-500 text-xs font-semibold rounded-xl mb-6 cursor-not-allowed">Ваш поточний план</button>
+                    
+                    <ul class="space-y-3 text-xs flex-1 border-t border-gray-200 dark:border-gray-800 pt-4">
+                        <li class="flex items-center gap-2 text-gray-600 dark:text-gray-300"><span class="material-symbols-outlined text-green-500 text-base">check</span> Базові версії (Flash-Lite, GPT-3.5)</li>
+                        <li class="flex items-center gap-2 text-gray-600 dark:text-gray-300"><span class="material-symbols-outlined text-green-500 text-base">check</span> Стандартна швидкість генерації</li>
+                        <li class="flex items-center gap-2 text-gray-400 line-through"><span class="material-symbols-outlined text-gray-500 text-base">close</span> Аналіз фото та файлів</li>
+                        <li class="flex items-center gap-2 text-gray-400 line-through"><span class="material-symbols-outlined text-gray-500 text-base">close</span> Ротація декількох ключів</li>
+                    </ul>
+                </div>
 
-        // DOM Elements
-        const authModal = document.getElementById('authModal');
-        const authForm = document.getElementById('authForm');
-        const authName = document.getElementById('authName');
-        const authEmail = document.getElementById('authEmail');
+                <!-- Pro Plan -->
+                <div class="border-2 border-blue-500 rounded-2xl p-6 flex flex-col relative bg-gradient-to-b from-blue-500/5 to-transparent shadow-xl">
+                    <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-500 text-white px-3 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide">
+                        Популярний
+                    </div>
+                    <h3 class="text-lg font-bold mb-1 text-blue-500">Roma APK Pro</h3>
+                    <p class="text-gray-500 text-xs mb-4">Для розширеної роботи з текстом та файлами.</p>
+                    <div class="text-3xl font-extrabold mb-6">$9.99 <span class="text-xs font-normal text-gray-500">/ міс</span></div>
+                    <button onclick="simulateUpgrade('Roma APK Pro')" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl mb-6 transition-all shadow-md shadow-blue-500/30">
+                        Придбати Pro
+                    </button>
+                    
+                    <ul class="space-y-3 text-xs flex-1 border-t border-gray-200 dark:border-gray-800 pt-4">
+                        <li class="flex items-center gap-2"><span class="material-symbols-outlined text-green-500 text-base">check</span> <b>Доступ до Gemini Pro, GPT-4o</b></li>
+                        <li class="flex items-center gap-2"><span class="material-symbols-outlined text-green-500 text-base">check</span> Пріоритетна швидкість відповідей</li>
+                        <li class="flex items-center gap-2"><span class="material-symbols-outlined text-green-500 text-base">check</span> Розпізнавання файлів та фото</li>
+                        <li class="flex items-center gap-2"><span class="material-symbols-outlined text-green-500 text-base">check</span> Авто-ротація до 4 ключів</li>
+                        <li class="flex items-center gap-2 text-gray-400 line-through"><span class="material-symbols-outlined text-gray-500 text-base">close</span> Генерація відео та аудіо</li>
+                    </ul>
+                </div>
+
+                <!-- Max Plan -->
+                <div class="border border-purple-500 rounded-2xl p-6 flex flex-col bg-gradient-to-b from-purple-500/10 to-transparent shadow-xl">
+                    <h3 class="text-lg font-bold mb-1 text-purple-400">Roma APK Max</h3>
+                    <p class="text-gray-500 text-xs mb-4">Максимальні можливості без жодних лімітів.</p>
+                    <div class="text-3xl font-extrabold mb-6">$24.99 <span class="text-xs font-normal text-gray-500">/ міс</span></div>
+                    <button onclick="simulateUpgrade('Roma APK Max')" class="w-full py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:opacity-90 text-white text-xs font-semibold rounded-xl mb-6 transition-all shadow-md shadow-purple-500/30">
+                        Придбати Max
+                    </button>
+                    
+                    <ul class="space-y-3 text-xs flex-1 border-t border-gray-200 dark:border-gray-800 pt-4">
+                        <li class="flex items-center gap-2"><span class="material-symbols-outlined text-purple-400 text-base">star</span> <b>Усі топові моделі</b> (вкл. Opus, o3)</li>
+                        <li class="flex items-center gap-2"><span class="material-symbols-outlined text-purple-400 text-base">star</span> Генерація зображень та відео</li>
+                        <li class="flex items-center gap-2"><span class="material-symbols-outlined text-purple-400 text-base">star</span> Синтез мовлення та аудіо</li>
+                        <li class="flex items-center gap-2"><span class="material-symbols-outlined text-purple-400 text-base">star</span> Безлімітні запити та токени</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State Management
+        let currentUser = {
+            name: 'Володимир',
+            email: 'vova@gmail.com',
+            picture: 'https://placehold.co/100x100/3b82f6/ffffff?text=V',
+            plan: 'Free'
+        };
+
+        let activeProvider = 'gemini'; // 'gemini' | 'chatgpt' | 'claude'
         
-        const sidebar = document.getElementById('sidebar');
-        const sidebarOverlay = document.getElementById('sidebarOverlay');
-        
-        const emptyState = document.getElementById('emptyState');
-        const chatArea = document.getElementById('chatArea');
-        const userInput = document.getElementById('userInput');
-        const sendBtn = document.getElementById('sendBtn');
-        
-        const modelSelectBtn = document.getElementById('modelSelectBtn');
-        const modelDropdown = document.getElementById('modelDropdown');
-        const currentModelDisplay = document.getElementById('currentModelDisplay');
-        
-        const upgradeModal = document.getElementById('upgradeModal');
-        const settingsModal = document.getElementById('settingsModal');
-        const systemPromptInput = document.getElementById('systemPrompt');
-        
-        const htmlRoot = document.documentElement;
-        const themeIcon = document.getElementById('themeIcon');
+        // Models structure per provider
+        const providerModels = {
+            gemini: [
+                { id: 'gemini-2.5-flash-lite', name: 'Flash-Lite', desc: 'Найшвидші відповіді' },
+                { id: 'gemini-2.5-flash', name: 'Flash', desc: 'Оптимальний вибір' },
+                { id: 'gemini-2.5-pro', name: 'Pro', desc: 'Розширені можливості' }
+            ],
+            chatgpt: [
+                { id: 'gpt-4o-mini', name: 'GPT-4o mini', desc: 'Швидкий та легкий' },
+                { id: 'gpt-4o', name: 'GPT-4o', desc: 'Флагманська модель' },
+                { id: 'o3-mini', name: 'o3-mini', desc: 'Поглиблене міркування' }
+            ],
+            claude: [
+                { id: 'claude-3-5-haiku', name: '3.5 Haiku', desc: 'Миттєва швидкість' },
+                { id: 'claude-3-5-sonnet', name: '3.5 Sonnet', desc: 'Високий інтелект' },
+                { id: 'claude-3-opus', name: '3 Opus', desc: 'Найпотужніший розум' }
+            ]
+        };
+
+        let selectedModelId = 'gemini-2.5-flash-lite';
+
+        // API Key Rotation Storage (up to 4 keys per provider)
+        let apiKeys = {
+            gemini: ['', '', '', ''],
+            chatgpt: ['', '', '', ''],
+            claude: ['', '', '', '']
+        };
+
+        let activeKeyIndexes = { gemini: 0, chatgpt: 0, claude: 0 };
+        let systemInstructions = "Звертайся до мене Володимир, будь ввічливим та точним.";
+        let attachedFiles = [];
+        let chatStarted = false;
 
         // Initialize App
-        function init() {
-            loadData();
-            if (!currentUser) {
-                authModal.classList.remove('hidden');
-            } else {
-                updateUserInfo();
-            }
-            applyTheme();
-            systemPromptInput.value = systemInstructions;
-        }
+        window.addEventListener('DOMContentLoaded', () => {
+            loadSavedData();
+            updateUI();
+            renderModelDropdownOptions();
+        });
 
-        function loadData() {
+        // Load data from LocalStorage
+        function loadSavedData() {
             const savedUser = localStorage.getItem('roma_user');
-            if (savedUser) currentUser = JSON.parse(savedUser);
-            
-            const savedTheme = localStorage.getItem('roma_theme');
-            if (savedTheme) isDarkMode = savedTheme === 'dark';
-            
-            const savedModel = localStorage.getItem('roma_model');
-            if (savedModel) {
-                selectedModel = savedModel;
-                currentModelDisplay.innerText = selectedModel;
-                updateSelectedModelUI();
+            if (savedUser) {
+                currentUser = JSON.parse(savedUser);
+                document.getElementById('authModal').classList.add('hidden');
+            }
+
+            const savedKeys = localStorage.getItem('roma_keys');
+            if (savedKeys) apiKeys = JSON.parse(savedKeys);
+
+            const savedProvider = localStorage.getItem('roma_provider');
+            if (savedProvider && providerModels[savedProvider]) {
+                activeProvider = savedProvider;
             }
 
             const savedInstructions = localStorage.getItem('roma_instructions');
             if (savedInstructions) systemInstructions = savedInstructions;
+
+            // Set default model ID based on active provider
+            selectedModelId = providerModels[activeProvider][0].id;
         }
 
-        // Auth Logic
-        authForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const name = authName.value.trim();
-            const email = authEmail.value.trim();
-            
-            if(name && email) {
-                currentUser = { name, email, plan: 'Free' };
-                localStorage.setItem('roma_user', JSON.stringify(currentUser));
-                updateUserInfo();
-                authModal.classList.add('hidden');
-            }
-        });
+        // Save data to LocalStorage
+        function saveData() {
+            localStorage.setItem('roma_user', JSON.stringify(currentUser));
+            localStorage.setItem('roma_keys', JSON.stringify(apiKeys));
+            localStorage.setItem('roma_provider', activeProvider);
+            localStorage.setItem('roma_instructions', systemInstructions);
+        }
 
-        function updateUserInfo() {
-            if(currentUser) {
-                document.getElementById('userNameDisplay').innerText = currentUser.name;
-                document.getElementById('userAvatar').innerText = currentUser.name.charAt(0).toUpperCase();
+        // Google Sign-In Handler
+        function handleGoogleSignIn(response) {
+            try {
+                const payload = parseJwt(response.credential);
+                if (payload) {
+                    currentUser = {
+                        name: payload.name || 'Користувач',
+                        email: payload.email || '',
+                        picture: payload.picture || 'https://placehold.co/100x100/3b82f6/ffffff?text=U',
+                        plan: 'Free'
+                    };
+                    saveData();
+                    updateUI();
+                    document.getElementById('authModal').classList.add('hidden');
+                }
+            } catch (err) {
+                console.error("Помилка декодування Google JWT:", err);
             }
         }
 
-        // Sidebar Mobile Toggle
-        function toggleSidebar() {
-            const isClosed = sidebar.classList.contains('-translate-x-full');
-            if(isClosed) {
-                sidebar.classList.remove('-translate-x-full');
-                sidebarOverlay.classList.remove('hidden');
+        // JWT Parser
+        function parseJwt(token) {
+            try {
+                const base64Url = token.split('.')[1];
+                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+                    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+                }).join(''));
+                return JSON.parse(jsonPayload);
+            } catch(e) { return null; }
+        }
+
+        // Demo Login Fallback
+        function demoLogin() {
+            currentUser = {
+                name: 'Володимир',
+                email: 'vova@gmail.com',
+                picture: 'https://placehold.co/100x100/3b82f6/ffffff?text=V',
+                plan: 'Free'
+            };
+            saveData();
+            updateUI();
+            document.getElementById('authModal').classList.add('hidden');
+        }
+
+        // UI Synchronization
+        function updateUI() {
+            document.getElementById('userNameDisplay').innerText = currentUser.name;
+            document.getElementById('userEmailDisplay').innerText = currentUser.email;
+            document.getElementById('userAvatar').src = currentUser.picture;
+
+            // Update Provider Badge in Sidebar
+            const providerBadge = document.getElementById('currentProviderBadge');
+            providerBadge.innerText = activeProvider.toUpperCase();
+
+            if (activeProvider === 'gemini') {
+                providerBadge.className = "text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-500 border border-blue-500/20 uppercase";
+                document.getElementById('currentProviderDot').className = "w-2 h-2 rounded-full bg-blue-500";
+            } else if (activeProvider === 'chatgpt') {
+                providerBadge.className = "text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-500/10 text-green-500 border border-green-500/20 uppercase";
+                document.getElementById('currentProviderDot').className = "w-2 h-2 rounded-full bg-green-500";
             } else {
-                sidebar.classList.add('-translate-x-full');
-                sidebarOverlay.classList.add('hidden');
+                providerBadge.className = "text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-500/10 text-orange-500 border border-orange-500/20 uppercase";
+                document.getElementById('currentProviderDot').className = "w-2 h-2 rounded-full bg-orange-500";
             }
+
+            // Find current model name
+            const currentModelObj = providerModels[activeProvider].find(m => m.id === selectedModelId) || providerModels[activeProvider][0];
+            document.getElementById('currentModelDisplay').innerText = currentModelObj.name;
+            document.getElementById('systemPrompt').value = systemInstructions;
         }
 
-        // Input Auto-resize & Styling
-        function autoResize(textarea) {
-            textarea.style.height = 'auto';
-            textarea.style.height = (textarea.scrollHeight < 128 ? textarea.scrollHeight : 128) + 'px';
+        // Switch Active AI Provider
+        function setProvider(provider) {
+            activeProvider = provider;
+            selectedModelId = providerModels[provider][0].id;
             
-            if(textarea.value.trim() !== '') {
+            saveData();
+            updateUI();
+            renderModelDropdownOptions();
+            updateSettingsProviderUI();
+        }
+
+        // Render Dynamic Options inside Dropdown near Input
+        function renderModelDropdownOptions() {
+            const list = document.getElementById('modelOptionsList');
+            const title = document.getElementById('dropdownProviderTitle');
+            list.innerHTML = '';
+
+            const models = providerModels[activeProvider];
+            const providerNames = { gemini: 'Gemini', chatgpt: 'ChatGPT', claude: 'Claude' };
+            title.innerText = `Моделі ${providerNames[activeProvider]}`;
+
+            models.forEach(m => {
+                const isSelected = m.id === selectedModelId;
+                const item = document.createElement('div');
+                item.className = `px-3.5 py-2 hover:bg-gray-100 dark:hover:bg-bgDarkCard cursor-pointer text-xs flex items-center justify-between transition-colors ${isSelected ? 'font-bold bg-blue-50 dark:bg-blue-900/20 text-blue-500' : 'text-gray-700 dark:text-gray-300'}`;
+                item.onclick = () => selectModel(m.id);
+
+                item.innerHTML = `
+                    <div>
+                        <p class="font-medium">${m.name}</p>
+                        <p class="text-[10px] text-gray-400 font-normal">${m.desc}</p>
+                    </div>
+                    ${isSelected ? '<span class="material-symbols-outlined text-sm text-blue-500">check</span>' : ''}
+                `;
+                list.appendChild(item);
+            });
+        }
+
+        function toggleModelDropdown() {
+            document.getElementById('modelDropdown').classList.toggle('hidden');
+        }
+
+        function selectModel(modelId) {
+            selectedModelId = modelId;
+            updateUI();
+            renderModelDropdownOptions();
+            document.getElementById('modelDropdown').classList.add('hidden');
+        }
+
+        // Auto-resize textarea
+        function autoResize(el) {
+            el.style.height = 'auto';
+            el.style.height = (el.scrollHeight < 120 ? el.scrollHeight : 120) + 'px';
+            
+            const sendBtn = document.getElementById('sendBtn');
+            if (el.value.trim().length > 0 || attachedFiles.length > 0) {
                 sendBtn.classList.remove('bg-gray-300', 'text-gray-500', 'dark:bg-gray-700', 'dark:text-gray-400');
-                sendBtn.classList.add('bg-black', 'text-white', 'dark:bg-white', 'dark:text-black');
+                sendBtn.classList.add('bg-blue-600', 'text-white', 'shadow-md', 'shadow-blue-500/30');
             } else {
                 sendBtn.classList.add('bg-gray-300', 'text-gray-500', 'dark:bg-gray-700', 'dark:text-gray-400');
-                sendBtn.classList.remove('bg-black', 'text-white', 'dark:bg-white', 'dark:text-black');
+                sendBtn.classList.remove('bg-blue-600', 'text-white', 'shadow-md', 'shadow-blue-500/30');
             }
         }
 
@@ -426,106 +632,141 @@
             }
         }
 
-        // Model Selection Logic
-        function toggleModelDropdown() {
-            modelDropdown.classList.toggle('hidden');
-        }
+        // Handle File Uploads
+        function handleFileSelect(e) {
+            const files = e.target.files;
+            if (!files.length) return;
 
-        // Close dropdown when clicking outside
-        document.addEventListener('click', (e) => {
-            if (!modelSelectBtn.contains(e.target) && !modelDropdown.contains(e.target)) {
-                modelDropdown.classList.add('hidden');
-            }
-        });
-
-        function selectModel(modelName) {
-            selectedModel = modelName;
-            currentModelDisplay.innerText = modelName;
-            localStorage.setItem('roma_model', selectedModel);
-            updateSelectedModelUI();
-            modelDropdown.classList.add('hidden');
-        }
-
-        function updateSelectedModelUI() {
-            const options = document.querySelectorAll('.model-option');
-            options.forEach(opt => {
-                opt.classList.remove('bg-gray-200', 'dark:bg-gray-700', 'font-bold');
-                if(opt.innerText.includes(selectedModel)) {
-                    opt.classList.add('bg-gray-200', 'dark:bg-gray-700', 'font-bold');
-                }
+            Array.from(files).forEach(file => {
+                const reader = new FileReader();
+                reader.onload = (evt) => {
+                    attachedFiles.push({
+                        name: file.name,
+                        type: file.type,
+                        dataUrl: evt.target.result
+                    });
+                    renderAttachedFiles();
+                    autoResize(document.getElementById('userInput'));
+                };
+                reader.readAsDataURL(file);
             });
         }
 
-        // Chat Logic
-        function startNewChat() {
-            chatStarted = false;
-            emptyState.style.display = 'flex';
-            
-            // Remove all chat messages
-            const messages = document.querySelectorAll('.chat-message');
-            messages.forEach(msg => msg.remove());
-            
-            if(window.innerWidth < 768) toggleSidebar();
+        function renderAttachedFiles() {
+            const container = document.getElementById('attachedFilesContainer');
+            if (attachedFiles.length === 0) {
+                container.classList.add('hidden');
+                return;
+            }
+            container.classList.remove('hidden');
+            container.innerHTML = '';
+
+            attachedFiles.forEach((file, idx) => {
+                const chip = document.createElement('div');
+                chip.className = "flex items-center gap-1.5 px-3 py-1 bg-gray-200 dark:bg-bgDarkCard rounded-full text-xs text-gray-800 dark:text-gray-200 border border-gray-300 dark:border-gray-700";
+                chip.innerHTML = `
+                    <span class="material-symbols-outlined text-sm text-blue-500">description</span>
+                    <span class="truncate max-w-[120px]">${file.name}</span>
+                    <button onclick="removeFile(${idx})" class="hover:text-red-500 ml-1">
+                        <span class="material-symbols-outlined text-xs">close</span>
+                    </button>
+                `;
+                container.appendChild(chip);
+            });
         }
 
-        function sendMessage() {
-            const text = userInput.value.trim();
-            if(!text) return;
+        function removeFile(idx) {
+            attachedFiles.splice(idx, 1);
+            renderAttachedFiles();
+            autoResize(document.getElementById('userInput'));
+        }
 
-            if(!chatStarted) {
-                emptyState.style.display = 'none';
+        // Send Message
+        function sendMessage() {
+            const input = document.getElementById('userInput');
+            const text = input.value.trim();
+            if (!text && attachedFiles.length === 0) return;
+
+            if (!chatStarted) {
+                document.getElementById('emptyState').style.display = 'none';
                 chatStarted = true;
             }
 
             // Append User Message
-            appendMessage(text, 'user');
-            
-            // Clear Input
-            userInput.value = '';
-            autoResize(userInput);
+            appendUserMessage(text, attachedFiles);
+
+            // Reset Input
+            input.value = '';
+            const fileList = [...attachedFiles];
+            attachedFiles = [];
+            renderAttachedFiles();
+            autoResize(input);
 
             // Show Typing Indicator
             const typingId = 'typing-' + Date.now();
             appendTypingIndicator(typingId);
             scrollToBottom();
 
-            // Simulate Bot Response (1 sec delay as requested)
-            setTimeout(() => {
-                removeTypingIndicator(typingId);
-                const replyText = "Необхідно вибрати іншу ШІ модель для відповіді або придбати платну модель Roma APK Pro або Roma APK Max.";
-                appendMessage(replyText, 'bot');
-            }, 1000);
+            // Simulate / Execute Request with Key Rotation
+            processAiRequest(text, fileList, typingId);
         }
 
-        function appendMessage(text, sender) {
+        function appendUserMessage(text, files) {
+            const chatArea = document.getElementById('chatArea');
             const msgDiv = document.createElement('div');
-            msgDiv.className = `chat-message flex gap-4 max-w-3xl w-full mx-auto slide-up ${sender === 'user' ? 'flex-row-reverse' : ''}`;
-            
-            const avatarHtml = sender === 'user' 
-                ? `<div class="w-8 h-8 rounded-full bg-accent text-accentDark flex items-center justify-center font-bold text-sm shrink-0">${currentUser ? currentUser.name.charAt(0).toUpperCase() : 'U'}</div>`
-                : `<div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 text-white flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-sm">robot_2</span></div>`;
-            
-            const bgClass = sender === 'user' ? 'bg-gray-100 dark:bg-bgDarkSec' : 'bg-transparent';
-            
+            msgDiv.className = "flex gap-3 max-w-2xl w-full ml-auto justify-end slide-up";
+
+            let filesHtml = '';
+            if (files && files.length > 0) {
+                filesHtml = `<div class="flex flex-wrap gap-2 mb-2">` + files.map(f => `
+                    <div class="px-2.5 py-1 bg-blue-600/20 text-blue-400 rounded-lg text-xs flex items-center gap-1">
+                        <span class="material-symbols-outlined text-sm">attach_file</span> ${f.name}
+                    </div>
+                `).join('') + `</div>`;
+            }
+
             msgDiv.innerHTML = `
-                ${avatarHtml}
-                <div class="${bgClass} px-4 py-3 rounded-2xl max-w-[85%] text-[15px] leading-relaxed">
+                <div class="bg-blue-600 text-white px-4 py-3 rounded-2xl max-w-[85%] text-sm shadow-md">
+                    ${filesHtml}
+                    <p class="whitespace-pre-wrap">${escapeHtml(text)}</p>
+                </div>
+                <img class="w-8 h-8 rounded-full border border-gray-300 dark:border-gray-700" src="${currentUser.picture}" alt="User">
+            `;
+            chatArea.appendChild(msgDiv);
+            scrollToBottom();
+        }
+
+        function appendBotMessage(text, isError = false) {
+            const chatArea = document.getElementById('chatArea');
+            const msgDiv = document.createElement('div');
+            msgDiv.className = "flex gap-3 max-w-2xl w-full mr-auto slide-up";
+
+            const providerColor = activeProvider === 'gemini' ? 'from-blue-500 to-indigo-600' : (activeProvider === 'chatgpt' ? 'from-green-500 to-emerald-600' : 'from-orange-500 to-amber-600');
+            const bgBox = isError ? 'bg-red-500/10 border-red-500/30 text-red-400' : 'bg-gray-100 dark:bg-bgDarkSec border border-gray-200 dark:border-gray-800';
+
+            msgDiv.innerHTML = `
+                <div class="w-8 h-8 rounded-full bg-gradient-to-tr ${providerColor} text-white flex items-center justify-center shrink-0 shadow-md">
+                    <span class="material-symbols-outlined text-sm">sparkles</span>
+                </div>
+                <div class="${bgBox} px-4 py-3 rounded-2xl max-w-[85%] text-sm text-gray-800 dark:text-gray-200 leading-relaxed shadow-sm">
                     <p class="whitespace-pre-wrap">${text}</p>
                 </div>
             `;
-            
             chatArea.appendChild(msgDiv);
             scrollToBottom();
         }
 
         function appendTypingIndicator(id) {
+            const chatArea = document.getElementById('chatArea');
             const msgDiv = document.createElement('div');
             msgDiv.id = id;
-            msgDiv.className = `chat-message flex gap-4 max-w-3xl w-full mx-auto slide-up`;
+            msgDiv.className = "flex gap-3 max-w-2xl w-full mr-auto slide-up";
             msgDiv.innerHTML = `
-                <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 text-white flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-sm">robot_2</span></div>
-                <div class="px-4 py-3 rounded-2xl max-w-[85%] flex items-center">
-                    <div class="typing-indicator text-gray-500">
+                <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-500 to-purple-600 text-white flex items-center justify-center shrink-0">
+                    <span class="material-symbols-outlined text-sm">sparkles</span>
+                </div>
+                <div class="bg-gray-100 dark:bg-bgDarkSec px-4 py-3 rounded-2xl flex items-center">
+                    <div class="typing-indicator text-gray-400">
                         <span></span><span></span><span></span>
                     </div>
                 </div>
@@ -535,68 +776,124 @@
 
         function removeTypingIndicator(id) {
             const el = document.getElementById(id);
-            if(el) el.remove();
+            if (el) el.remove();
         }
 
         function scrollToBottom() {
+            const chatArea = document.getElementById('chatArea');
             chatArea.scrollTo({ top: chatArea.scrollHeight, behavior: 'smooth' });
         }
 
-        // Modals Management
-        function openUpgradeModal() { upgradeModal.classList.remove('hidden'); }
-        function closeUpgradeModal() { upgradeModal.classList.add('hidden'); }
-        
-        function upgradePlan(plan) {
-            // Mock custom modal message instead of alert
-            const btn = event.target;
-            const originalText = btn.innerText;
-            btn.innerText = "Обробка...";
-            btn.classList.add('opacity-50', 'cursor-wait');
+        // API Execution with Key Rotation
+        async function processAiRequest(userPrompt, files, typingId) {
+            const keys = apiKeys[activeProvider].filter(k => k.trim() !== '');
             
+            // Simulation or key execution logic
             setTimeout(() => {
-                btn.innerText = "Успішно оновлено!";
-                btn.classList.remove('opacity-50', 'cursor-wait', 'bg-accentDark', 'bg-purple-600');
-                btn.classList.add('bg-green-500', 'text-white');
-                setTimeout(() => { closeUpgradeModal(); btn.innerText = originalText; }, 1500);
-            }, 800);
-        }
+                removeTypingIndicator(typingId);
 
-        function openSettingsModal() { settingsModal.classList.remove('hidden'); }
-        function closeSettingsModal() { settingsModal.classList.add('hidden'); }
+                if (keys.length === 0) {
+                    // Fallback message when keys are finished/missing as requested
+                    appendBotMessage("Необхідно вибрати іншу ШІ модель для відповіді або придбати платну модель Roma APK Pro або Roma APK Max.", true);
+                } else {
+                    // Simulating rotation over available keys
+                    const currentKeyIdx = activeKeyIndexes[activeProvider] % keys.length;
+                    activeKeyIndexes[activeProvider]++;
 
-        function saveSettings() {
-            systemInstructions = systemPromptInput.value.trim();
-            localStorage.setItem('roma_instructions', systemInstructions);
-            
-            const btn = event.target;
-            btn.innerText = "Збережено!";
-            btn.classList.add('bg-green-500');
-            setTimeout(() => {
-                btn.innerText = "Зберегти налаштування";
-                btn.classList.remove('bg-green-500');
-                closeSettingsModal();
+                    const modelObj = providerModels[activeProvider].find(m => m.id === selectedModelId);
+                    const reply = `[Roma APK • ${modelObj.name}] (Використано ключ #${currentKeyIdx + 1}):\nПривіт, ${currentUser.name}! Я отримав твій запит: "${userPrompt}". Твої персональні інструкції враховано!`;
+                    
+                    appendBotMessage(reply);
+                }
             }, 1000);
         }
 
-        // Theme Management
-        function toggleTheme() {
-            isDarkMode = !isDarkMode;
-            localStorage.setItem('roma_theme', isDarkMode ? 'dark' : 'light');
-            applyTheme();
+        // Settings Modal Management
+        function openSettingsModal() {
+            updateSettingsProviderUI();
+            document.getElementById('settingsModal').classList.remove('hidden');
         }
 
-        function applyTheme() {
-            if (isDarkMode) {
-                htmlRoot.classList.add('dark');
-                themeIcon.innerText = 'dark_mode';
-            } else {
-                htmlRoot.classList.remove('dark');
-                themeIcon.innerText = 'light_mode';
+        function closeSettingsModal() {
+            document.getElementById('settingsModal').classList.add('hidden');
+        }
+
+        function updateSettingsProviderUI() {
+            document.getElementById('keySectionProviderName').innerText = activeProvider.toUpperCase();
+            
+            ['gemini', 'chatgpt', 'claude'].forEach(p => {
+                const btn = document.getElementById('providerBtn' + (p === 'gemini' ? 'Gemini' : (p === 'chatgpt' ? 'ChatGPT' : 'Claude')));
+                if (p === activeProvider) {
+                    btn.className = "p-3 rounded-2xl border-2 border-blue-500 bg-blue-500/10 flex flex-col items-center gap-2 transition-all font-bold text-blue-500";
+                } else {
+                    btn.className = "p-3 rounded-2xl border border-gray-300 dark:border-gray-700 bg-transparent flex flex-col items-center gap-2 transition-all text-gray-400 hover:border-gray-500";
+                }
+            });
+
+            // Fill inputs for current provider keys
+            for (let i = 0; i < 4; i++) {
+                document.getElementById(`apiKey${i}`).value = apiKeys[activeProvider][i] || '';
             }
         }
 
-        // Boot
-        init();
+        function saveSettings() {
+            systemInstructions = document.getElementById('systemPrompt').value.trim();
+            
+            for (let i = 0; i < 4; i++) {
+                apiKeys[activeProvider][i] = document.getElementById(`apiKey${i}`).value.trim();
+            }
+
+            saveData();
+            updateUI();
+
+            const btn = document.getElementById('saveSettingsBtn');
+            btn.innerText = "Збережено!";
+            btn.classList.replace('bg-blue-600', 'bg-green-600');
+            setTimeout(() => {
+                btn.innerText = "Зберегти налаштування";
+                btn.classList.replace('bg-green-600', 'bg-blue-600');
+                closeSettingsModal();
+            }, 800);
+        }
+
+        // Upgrade Modal Management
+        function openUpgradeModal() {
+            document.getElementById('upgradeModal').classList.remove('hidden');
+        }
+
+        function closeUpgradeModal() {
+            document.getElementById('upgradeModal').classList.add('hidden');
+        }
+
+        function simulateUpgrade(planName) {
+            alert(`Дякуємо! Ви обрали план ${planName}. У навчальній версії функція оплати імітується.`);
+            currentUser.plan = planName;
+            saveData();
+            closeUpgradeModal();
+        }
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            sidebar.classList.toggle('-translate-x-full');
+            overlay.classList.toggle('hidden');
+        }
+
+        function startNewChat() {
+            chatStarted = false;
+            document.getElementById('emptyState').style.display = 'flex';
+            
+            const messages = document.querySelectorAll('#chatArea > div:not(#emptyState)');
+            messages.forEach(m => m.remove());
+
+            if (window.innerWidth < 768) {
+                toggleSidebar();
+            }
+        }
+
+        function escapeHtml(text) {
+            return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
     </script>
 </body>
 </html>
