@@ -3,247 +3,536 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Roma APK — ШІ Помічник</title>
-    <!-- Tailwind CSS -->
+    <title>Roma APK - AI Assistant</title>
+    
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Marked.js for Markdown parsing -->
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.js"></script>
-    <!-- Google Identity Services -->
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script>
         tailwind.config = {
             darkMode: 'class',
             theme: {
                 extend: {
                     colors: {
-                        darkbg: '#131314',
-                        sidebar: '#1e1f20',
-                        chatbubble: '#1e1f20',
-                        inputbg: '#1e1f20'
+                        bgDark: '#0e0f12',
+                        bgDarkSec: '#16171d',
+                        bgDarkCard: '#1e2029',
+                        bgDarkHover: '#282a36',
+                        accentBlue: '#3b82f6',
+                        accentPurple: '#8b5cf6',
+                        accentGreen: '#10b981',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
                     }
                 }
             }
         }
     </script>
+    
+    <!-- Google Fonts & Material Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+
+    <!-- Google Identity Services -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+    <!-- Marked.js for Markdown parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
     <style>
-        @keyframes pulse-slow {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.4; }
-        }
-        .animate-pulse-slow { animation: pulse-slow 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        body { font-family: 'Inter', sans-serif; }
+        
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: #666; }
+        ::-webkit-scrollbar-thumb { background-color: rgba(156, 163, 175, 0.2); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background-color: rgba(156, 163, 175, 0.4); }
+
+        .typing-indicator span {
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            background-color: currentColor;
+            border-radius: 50%;
+            animation: typing 1.4s infinite ease-in-out;
+            margin: 0 2px;
+        }
+        .typing-indicator span:nth-child(1) { animation-delay: 0s; }
+        .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes typing {
+            0%, 100% { transform: translateY(0); opacity: 0.4; }
+            50% { transform: translateY(-5px); opacity: 1; }
+        }
+
+        .modal-enter { animation: fadeIn 0.2s ease-out forwards; }
+        .slide-up { animation: slideUp 0.25s ease-out forwards; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { transform: translateY(12px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        /* Markdown styling for response content */
+        .prose pre {
+            background-color: #121318;
+            padding: 1rem;
+            border-radius: 0.75rem;
+            overflow-x: auto;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            margin-top: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        .prose code {
+            font-family: monospace;
+            background-color: rgba(255, 255, 255, 0.1);
+            padding: 0.15rem 0.35rem;
+            border-radius: 0.25rem;
+            font-size: 0.875em;
+        }
+        .prose pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+        .prose p { margin-bottom: 0.5rem; }
+        .prose p:last-child { margin-bottom: 0; }
+        .prose ul { list-style-type: disc; padding-left: 1.25rem; margin-bottom: 0.5rem; }
+        .prose ol { list-style-type: decimal; padding-left: 1.25rem; margin-bottom: 0.5rem; }
+
+        html { -webkit-text-size-adjust: 100%; }
+        body { overscroll-behavior: none; -webkit-tap-highlight-color: transparent; }
+        button, input, textarea { -webkit-tap-highlight-color: transparent; }
+        @media (max-width: 767px) {
+            #chatArea { padding: 12px 10px 190px; }
+            #messagesContainer { width: 100%; }
+            #messagesContainer > div { max-width: 100%; }
+            #messagesContainer .max-w-\[85\%\] { max-width: calc(100vw - 72px); }
+            #userInput { font-size: 16px !important; }
+            #modelDropdown { width: min(280px, calc(100vw - 32px)); }
+            #authModal > div { max-height: calc(100dvh - 32px); overflow-y: auto; }
+        }
+        @supports (padding: max(0px)) {
+            #chatArea { padding-bottom: max(190px, calc(170px + env(safe-area-inset-bottom))); }
+            main > div:last-child { padding-bottom: max(16px, env(safe-area-inset-bottom)); }
+        }
+        .ai-glow { position: relative; }
+        .ai-glow::before { content: ''; position: absolute; inset: -20px; border-radius: 40px; background: radial-gradient(circle, rgba(99,102,241,.22), transparent 68%); filter: blur(18px); animation: pulseGlow 3.2s ease-in-out infinite; pointer-events:none; z-index:-1; }
+        @keyframes pulseGlow { 0%,100%{opacity:.45;transform:scale(.96)} 50%{opacity:1;transform:scale(1.04)} }
+        .welcome-orb { animation: orbFloat 5s ease-in-out infinite; }
+        @keyframes orbFloat { 0%,100%{transform:translateY(0) rotate(0)} 50%{transform:translateY(-8px) rotate(3deg)} }
+        @media (prefers-reduced-motion: reduce) { *,*::before,*::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; } }
     </style>
 </head>
-<body class="bg-darkbg text-gray-100 h-screen flex overflow-hidden font-sans">
+<body class="bg-bgLight text-gray-800 dark:bg-bgDark dark:text-gray-100 transition-colors duration-300 overflow-hidden h-screen flex">
 
-    <!-- SIDEBAR -->
-    <aside id="sidebar" class="w-72 bg-sidebar flex flex-col justify-between border-r border-gray-800 transition-all duration-300 z-20 md:relative absolute inset-y-0 left-0 -translate-x-full md:translate-x-0">
-        <div class="p-3 flex flex-col h-full">
-            <!-- Top: Brand & New Chat -->
-            <div class="flex items-center justify-between mb-4 px-2">
-                <div class="flex items-center space-x-2">
-                    <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-500 to-purple-600 flex items-center justify-center font-bold text-white text-sm">R</div>
-                    <span class="font-semibold text-lg tracking-wide">Roma APK</span>
-                </div>
-                <button onclick="toggleSidebar()" class="md:hidden text-gray-400 hover:text-white p-1"><i class="fa-solid fa-xmark"></i></button>
+    <!-- Auth / Google Login Modal -->
+    <div id="authModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md modal-enter">
+        <div class="bg-white dark:bg-bgDarkSec p-8 rounded-3xl shadow-2xl w-full max-w-md mx-4 text-center slide-up border border-gray-200 dark:border-gray-800">
+            <div class="w-16 h-16 bg-gradient-to-tr from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-purple-500/20">
+                <span class="material-symbols-outlined text-white text-3xl">auto_awesome</span>
             </div>
+            <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">Roma APK</h2>
+            <p class="text-gray-500 dark:text-gray-400 text-sm mb-8">Увійдіть у ваш акаунт для доступу до персонального ШІ-помічника та збереження історій чатів.</p>
+            
+            <div class="flex flex-col items-center justify-center gap-4">
+                <div id="g_id_onload"
+                     data-client_id="81756456222-j8rqk26jsloknt9m80hg98eu0n3tqohs.apps.googleusercontent.com"
+                     data-callback="handleGoogleSignIn"
+                     data-auto_prompt="false">
+                </div>
+                <div class="g_id_signin" 
+                     data-type="standard" 
+                     data-size="large" 
+                     data-theme="outline" 
+                     data-text="sign_in_with" 
+                     data-shape="pill">
+                </div>
 
-            <button onclick="createNewChat()" class="flex items-center space-x-3 bg-[#282a2c] hover:bg-[#333538] text-gray-200 px-4 py-3 rounded-xl transition text-sm font-medium mb-4 shadow-sm">
-                <i class="fa-solid fa-plus text-blue-400"></i>
+                <div class="w-full border-t border-gray-200 dark:border-gray-800 my-2 pt-4">
+                    <button onclick="demoLogin()" class="w-full py-3 px-4 bg-gray-100 hover:bg-gray-200 dark:bg-bgDarkCard dark:hover:bg-bgDarkHover text-gray-800 dark:text-gray-200 text-sm font-semibold rounded-2xl transition-all flex items-center justify-center gap-2">
+                        <span class="material-symbols-outlined text-sm">person</span>
+                        Демо-вхід
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile Sidebar Overlay -->
+    <div id="sidebarOverlay" class="fixed inset-0 bg-black/60 z-30 hidden md:hidden backdrop-blur-sm" onclick="toggleSidebar()"></div>
+
+    <!-- Sidebar Navigation -->
+    <aside id="sidebar" class="fixed md:static inset-y-0 left-0 z-40 w-72 bg-bgLightSec dark:bg-bgDarkSec flex flex-col transition-transform duration-300 transform -translate-x-full md:translate-x-0 h-full border-r border-gray-200 dark:border-gray-800/80">
+        
+        <!-- Brand & New Chat -->
+        <div class="p-4 space-y-3">
+            <div class="flex items-center justify-between px-2">
+                <div class="flex items-center gap-2.5">
+                    <span class="material-symbols-outlined text-blue-500 text-2xl">auto_awesome</span>
+                    <span class="font-bold text-lg tracking-wide text-gray-900 dark:text-white">Roma APK</span>
+                </div>
+                <span id="currentProviderBadge" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-500 border border-blue-500/20 uppercase tracking-wider">Gemini</span>
+            </div>
+            
+            <button onclick="startNewChat()" class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl shadow-lg shadow-blue-500/20 transition-all group font-medium text-sm">
+                <span class="material-symbols-outlined text-xl group-hover:rotate-90 transition-transform duration-300">add</span>
                 <span>Новий чат</span>
             </button>
+        </div>
 
-            <!-- Chat History Section -->
-            <div class="text-xs font-semibold text-gray-400 px-2 mb-2">Історія чатів</div>
-            <div id="chatHistoryList" class="flex-1 overflow-y-auto space-y-1 pr-1">
-                <!-- Dynamically populated chats -->
+        <!-- Chat History List -->
+        <div class="flex-1 overflow-y-auto px-3 py-2 space-y-1">
+            <p class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider px-3 mb-2">Нещодавні діалоги</p>
+            <div id="historyListContainer" class="space-y-1">
+                <!-- Dynamically filled or empty state -->
             </div>
+        </div>
 
-            <!-- Bottom Actions -->
-            <div class="pt-3 border-t border-gray-800 space-y-2">
-                <button onclick="openPlanModal()" class="w-full flex items-center justify-between bg-gradient-to-r from-purple-600/20 to-blue-600/20 hover:from-purple-600/30 hover:to-blue-600/30 border border-purple-500/30 px-3 py-2.5 rounded-xl text-sm transition">
-                    <span class="flex items-center space-x-2 text-purple-300 font-medium">
-                        <i class="fa-solid fa-crown text-amber-400"></i>
-                        <span>Змінити план</span>
-                    </span>
-                    <span id="currentPlanBadge" class="text-xs bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded-full">Free</span>
-                </button>
-
-                <button onclick="openSettingsModal()" class="w-full flex items-center space-x-3 hover:bg-[#282a2c] px-3 py-2.5 rounded-xl text-sm text-gray-300 transition">
-                    <i class="fa-solid fa-gear text-gray-400"></i>
-                    <span>Налаштування</span>
-                </button>
-
-                <!-- User Profile / Auth Area -->
-                <div id="userProfileSection" class="flex items-center justify-between px-2 py-2 mt-2 bg-[#282a2c]/50 rounded-xl">
-                    <div class="flex items-center space-x-2 overflow-hidden">
-                        <div id="userAvatar" class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-xs font-bold shrink-0">U</div>
-                        <div class="truncate">
-                            <div id="userName" class="text-xs font-medium truncate">Гість</div>
-                            <div id="userEmail" class="text-xs text-gray-400 truncate">Увійдіть через Google</div>
-                        </div>
-                    </div>
-                    <button id="authBtn" onclick="handleAuthClick()" class="text-xs bg-blue-600 hover:bg-blue-500 text-white px-2.5 py-1.5 rounded-lg transition shrink-0">Увійти</button>
+        <!-- Bottom Actions & Profile -->
+        <div class="p-3 space-y-2 border-t border-gray-200 dark:border-gray-800">
+            <button onclick="openUpgradeModal()" class="w-full flex items-center justify-between px-4 py-3 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white rounded-2xl hover:opacity-95 transition-opacity shadow-lg shadow-indigo-500/20">
+                <div class="flex items-center gap-2.5">
+                    <span class="material-symbols-outlined text-yellow-300">workspace_premium</span>
+                    <span class="font-semibold text-sm">Змінити план</span>
                 </div>
+                <span id="sidebarPlanBadge" class="text-[10px] bg-white/20 px-2 py-0.5 rounded-full font-bold uppercase">FREE</span>
+            </button>
+            
+            <div class="flex items-center justify-between p-2 rounded-2xl bg-gray-100 dark:bg-bgDarkCard border border-gray-200 dark:border-gray-800">
+                <div class="flex items-center gap-3 overflow-hidden">
+                    <img id="userAvatar" class="w-9 h-9 rounded-full object-cover border border-gray-300 dark:border-gray-700 shrink-0" src="https://placehold.co/100x100/3b82f6/ffffff?text=V" alt="Avatar">
+                    <div class="truncate">
+                        <p class="text-xs font-semibold text-gray-900 dark:text-white truncate" id="userNameDisplay">Володимир</p>
+                        <p class="text-[10px] text-gray-400 truncate" id="userEmailDisplay">vova@gmail.com</p>
+                    </div>
+                </div>
+                <button onclick="openSettingsModal()" class="p-2 text-gray-400 hover:text-white rounded-xl hover:bg-gray-200 dark:hover:bg-bgDarkHover transition-colors shrink-0" title="Налаштування">
+                    <span class="material-symbols-outlined text-xl">settings</span>
+                </button>
             </div>
         </div>
     </aside>
 
-    <!-- MAIN CHAT INTERFACE -->
-    <main class="flex-1 flex flex-col h-full relative overflow-hidden bg-darkbg">
-        <!-- Top bar -->
-        <header class="flex items-center justify-between px-4 py-3 border-b border-gray-800 bg-darkbg/80 backdrop-blur z-15">
-            <div class="flex items-center space-x-3">
-                <button onclick="toggleSidebar()" class="text-gray-400 hover:text-white p-2 rounded-lg hover:bg-gray-800 transition"><i class="fa-solid fa-bars"></i></button>
-                <div class="flex items-center space-x-2">
-                    <span id="headerProviderTitle" class="text-sm font-semibold text-gray-200">Gemini</span>
-                    <span class="text-gray-600">/</span>
-                    <span id="headerModelTitle" class="text-xs text-gray-400">Flash</span>
-                </div>
-            </div>
+    <!-- Main Content Area -->
+    <main class="flex-1 flex flex-col relative h-full w-full max-w-full bg-bgLight dark:bg-bgDark">
+        
+        <!-- Mobile Top Header -->
+        <header class="md:hidden flex items-center justify-between p-3 border-b border-gray-200 dark:border-gray-800 bg-bgLightSec dark:bg-bgDarkSec">
+            <button onclick="toggleSidebar()" class="p-2 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-xl">
+                <span class="material-symbols-outlined">menu</span>
+            </button>
+            <span class="font-bold text-base bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-purple-500">Roma APK</span>
+            <button onclick="startNewChat()" class="p-2 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-xl">
+                <span class="material-symbols-outlined">add</span>
+            </button>
         </header>
 
-        <!-- Chat messages or Welcome Screen -->
-        <div id="chatContainer" class="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 flex flex-col">
-            <!-- Welcome screen shown if empty chat -->
-            <div id="welcomeScreen" class="my-auto text-center max-w-md mx-auto space-y-4">
-                <h1 class="text-3xl font-bold tracking-tight text-gray-100">Roma APK</h1>
-                <p class="text-gray-400 text-sm">Ваш універсальний персональний помічник на основі передових ШІ моделей.</p>
-            </div>
-            <div id="messagesList" class="space-y-6 max-w-3xl w-full mx-auto"></div>
-        </div>
+        <!-- Chat Messages Area -->
+        <div id="chatArea" class="flex-1 overflow-y-auto p-4 md:p-8 flex flex-col space-y-6 pb-44">
+            
+            <!-- Default Welcome Screen (When Chat is Empty) -->
+            <div id="emptyState" class="m-auto flex flex-col items-center justify-center text-center slide-up max-w-xl py-12">
+                <div class="w-20 h-20 welcome-orb ai-glow bg-gradient-to-tr from-blue-500 via-indigo-500 to-purple-600 rounded-3xl flex items-center justify-center shadow-2xl shadow-indigo-500/25 mb-6">
+                    <span class="material-symbols-outlined text-white text-4xl">auto_awesome</span>
+                </div>
+                <h1 class="text-3xl md:text-5xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-blue-500 via-indigo-400 to-purple-500 mb-3 tracking-tight">
+                    Roma APK
+                </h1>
+                <p class="text-gray-500 dark:text-gray-400 text-sm md:text-base max-w-md mb-8">
+                    Ваш персональний помічник на основі ШІ
+                </p>
 
-        <!-- Input Area -->
-        <div class="p-4 bg-darkbg max-w-3xl w-full mx-auto">
-            <div class="bg-inputbg rounded-2xl border border-gray-700/60 p-3 shadow-lg focus-within:border-gray-500 transition">
-                <textarea id="userInput" rows="1" placeholder="Запитайте Roma APK..." class="w-full bg-transparent text-gray-100 placeholder-gray-500 text-sm focus:outline-none resize-none max-h-32" oninput="autoResize(this)" onkeydown="handleKeyDown(event)"></textarea>
-                
-                <div class="flex items-center justify-between mt-2 pt-2 border-t border-gray-800/60">
-                    <div class="flex items-center space-x-2">
-                        <!-- Attachment button -->
-                        <label class="cursor-pointer text-gray-400 hover:text-gray-200 p-1.5 rounded-lg hover:bg-gray-800 transition">
-                            <i class="fa-solid fa-paperclip text-sm"></i>
-                            <input type="file" id="fileInput" class="hidden" onchange="handleFileSelect(event)">
-                        </label>
-                        <span id="fileNameDisplay" class="text-xs text-blue-400 truncate max-w-[150px]"></span>
-
-                        <!-- Dynamic Model Selector near input -->
-                        <div class="relative">
-                            <select id="modelSelector" class="bg-gray-800 text-gray-300 text-xs rounded-lg px-2.5 py-1.5 border border-gray-700 focus:outline-none cursor-pointer">
-                                <!-- Populated dynamically based on provider -->
-                            </select>
-                        </div>
-                    </div>
-
-                    <button id="sendBtn" onclick="sendMessage()" class="bg-blue-600 hover:bg-blue-500 text-white w-8 h-8 rounded-xl flex items-center justify-center transition shadow-md disabled:opacity-40 disabled:cursor-not-allowed">
-                        <i class="fa-solid fa-arrow-up text-xs"></i>
+                <!-- Quick Prompts Suggestions -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full text-left">
+                    <button onclick="useQuickPrompt('Поясни складну концепцію простою мовою')" class="p-3.5 bg-gray-100 dark:bg-bgDarkCard hover:bg-gray-200 dark:hover:bg-bgDarkHover border border-gray-200 dark:border-gray-800 rounded-2xl text-xs transition-all">
+                        <p class="font-semibold text-gray-900 dark:text-white mb-1">💡 Навчання</p>
+                        <p class="text-gray-500 dark:text-gray-400">Поясни складну концепцію простою мовою</p>
+                    </button>
+                    <button onclick="useQuickPrompt('Напиши JavaScript функцію для сортування масиву')" class="p-3.5 bg-gray-100 dark:bg-bgDarkCard hover:bg-gray-200 dark:hover:bg-bgDarkHover border border-gray-200 dark:border-gray-800 rounded-2xl text-xs transition-all">
+                        <p class="font-semibold text-gray-900 dark:text-white mb-1">💻 Кодування</p>
+                        <p class="text-gray-500 dark:text-gray-400">Напиши JS функцію для сортування</p>
                     </button>
                 </div>
             </div>
-            <div class="text-center mt-2 text-[11px] text-gray-500">Roma APK може робити помилки. Перевіряйте важливу інформацію.</div>
+
+            <!-- Dynamic Messages Append Here -->
+            <div id="messagesContainer" class="flex flex-col space-y-6 max-w-3xl mx-auto w-full"></div>
+        </div>
+
+        <!-- Fixed Input Panel -->
+        <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-bgLight via-bgLight to-transparent dark:from-bgDark dark:via-bgDark p-4 pt-8">
+            <div class="max-w-3xl mx-auto relative">
+                
+                <!-- Attached Files Preview Container -->
+                <div id="attachedFilesContainer" class="hidden flex flex-wrap gap-2 mb-2 px-2"></div>
+
+                <!-- Model Picker Bar Above Input -->
+                <div class="flex items-center justify-between mb-2 px-1">
+                    <div class="relative">
+                        <button id="modelSelectBtn" onclick="toggleModelDropdown()" class="flex items-center gap-2 px-3.5 py-1.5 bg-gray-100 dark:bg-bgDarkSec hover:bg-gray-200 dark:hover:bg-bgDarkCard border border-gray-300 dark:border-gray-700 rounded-xl text-xs font-semibold transition-all shadow-sm text-gray-800 dark:text-gray-200">
+                            <span id="currentProviderDot" class="w-2 h-2 rounded-full bg-blue-500"></span>
+                            <span id="currentModelDisplay">Flash-Lite</span>
+                            <span class="material-symbols-outlined text-xs text-gray-400">expand_more</span>
+                        </button>
+
+                        <!-- Dynamic Submodel Dropdown -->
+                        <div id="modelDropdown" class="hidden absolute bottom-full left-0 mb-2 w-60 bg-white dark:bg-bgDarkSec border border-gray-200 dark:border-gray-700 rounded-2xl shadow-2xl overflow-hidden modal-enter z-30">
+                            <div class="px-3 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-wider bg-gray-50 dark:bg-black/30 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center">
+                                <span id="dropdownProviderTitle">Моделі Gemini</span>
+                                <button onclick="openSettingsModal()" class="text-blue-500 hover:underline">Провайдер</button>
+                            </div>
+                            <div id="modelOptionsList" class="py-1 max-h-56 overflow-y-auto">
+                                <!-- Dynamically populated based on active provider -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <span class="text-[11px] text-gray-400">Авто-ротація ключів активна</span>
+                </div>
+
+                <!-- Main Input Box -->
+                <div class="flex items-end bg-gray-100 dark:bg-bgDarkSec rounded-3xl p-2 border border-gray-200 dark:border-gray-700/70 shadow-xl focus-within:border-blue-500 transition-all">
+                    
+                    <!-- File Upload Button -->
+                    <label class="p-2.5 text-gray-400 hover:text-gray-700 dark:hover:text-white rounded-full cursor-pointer transition-colors flex items-center justify-center">
+                        <input type="file" id="fileInput" class="hidden" multiple onchange="handleFileSelect(event)">
+                        <span class="material-symbols-outlined text-xl">attach_file</span>
+                    </label>
+
+                    <!-- Text Input -->
+                    <textarea id="userInput" rows="1" class="flex-1 bg-transparent border-none focus:outline-none focus:ring-0 resize-none py-2.5 px-2 max-h-36 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" placeholder="Запитайте Roma APK..." oninput="autoResize(this)" onkeydown="handleEnter(event)"></textarea>
+
+                    <div class="flex items-center gap-1 p-1">
+                        <!-- Send Button -->
+                        <button onclick="sendMessage()" id="sendBtn" class="p-2.5 bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-full transition-all duration-200 flex items-center justify-center">
+                            <span class="material-symbols-outlined text-lg">arrow_upward</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="text-center mt-2">
+                    <span class="text-[10px] text-gray-400">Roma APK створює чисті відповіді на основі штучного інтелекту.</span>
+                </div>
+            </div>
         </div>
     </main>
 
-    <!-- SETTINGS MODAL -->
-    <div id="settingsModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
-        <div class="bg-sidebar border border-gray-800 w-full max-w-md rounded-2xl p-6 space-y-5 shadow-2xl">
-            <div class="flex items-center justify-between">
-                <h3 class="text-lg font-semibold text-gray-100">Налаштування</h3>
-                <button onclick="closeSettingsModal()" class="text-gray-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
-            </div>
-
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-xs font-medium text-gray-400 mb-1.5">ШІ Провайдер</label>
-                    <select id="providerSelect" onchange="onProviderChange()" class="w-full bg-[#131314] border border-gray-700 rounded-xl px-3 py-2.5 text-sm text-gray-200 focus:outline-none">
-                        <option value="gemini">Google Gemini</option>
-                        <option value="chatgpt">OpenAI ChatGPT</option>
-                        <option value="claude">Anthropic Claude</option>
-                    </select>
+    <!-- Settings Modal (NO API KEYS IN UI!) -->
+    <div id="settingsModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm hidden modal-enter">
+        <div class="bg-white dark:bg-bgDarkSec p-6 md:p-8 rounded-3xl shadow-2xl w-full max-w-lg mx-4 overflow-y-auto max-h-[90vh] slide-up border border-gray-200 dark:border-gray-800">
+            <div class="flex justify-between items-center mb-6">
+                <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-blue-500">settings</span>
+                    <h2 class="text-xl font-bold text-gray-900 dark:text-white">Налаштування</h2>
                 </div>
+                <button onclick="closeSettingsModal()" class="p-1.5 text-gray-400 hover:text-white rounded-full hover:bg-gray-200 dark:hover:bg-bgDarkHover transition-colors">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
             </div>
 
-            <div class="flex justify-end pt-2">
-                <button onclick="closeSettingsModal()" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl text-sm transition font-medium">Зберегти</button>
+            <div class="space-y-6">
+                <!-- Select Main Provider -->
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-3">Основний ШІ Провайдер</label>
+                    <div class="grid grid-cols-3 gap-3">
+                        <button type="button" onclick="setProvider('gemini')" id="providerBtnGemini" class="p-3.5 rounded-2xl border flex flex-col items-center gap-2 transition-all">
+                            <span class="material-symbols-outlined text-blue-500 text-2xl">sparkles</span>
+                            <span class="font-semibold text-xs">Google Gemini</span>
+                        </button>
+                        <button type="button" onclick="setProvider('chatgpt')" id="providerBtnChatGPT" class="p-3.5 rounded-2xl border flex flex-col items-center gap-2 transition-all">
+                            <span class="material-symbols-outlined text-green-500 text-2xl">smart_toy</span>
+                            <span class="font-semibold text-xs">OpenAI ChatGPT</span>
+                        </button>
+                        <button type="button" onclick="setProvider('claude')" id="providerBtnClaude" class="p-3.5 rounded-2xl border flex flex-col items-center gap-2 transition-all">
+                            <span class="material-symbols-outlined text-orange-500 text-2xl">psychology</span>
+                            <span class="font-semibold text-xs">Anthropic Claude</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Custom Instructions / System Prompt -->
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1">Персональні інструкції для ШІ (Пам'ять)</label>
+                    <p class="text-xs text-gray-500 mb-2">Наприклад: "Звертайся до мене Володимир, надавай відповіді українською, пиши чистий код."</p>
+                    <textarea id="systemPrompt" rows="3" class="w-full px-3.5 py-2.5 rounded-2xl bg-gray-50 dark:bg-bgDarkCard border border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none text-xs text-gray-900 dark:text-white" placeholder="Введіть ваші інструкції..."></textarea>
+                </div>
+
+                <!-- Save Settings Button -->
+                <button onclick="saveSettings()" id="saveSettingsBtn" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-2xl transition-all text-sm shadow-lg shadow-blue-500/25">
+                    Зберегти налаштування
+                </button>
             </div>
         </div>
     </div>
 
-    <!-- SUBSCRIPTION / PLAN MODAL -->
-    <div id="planModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
-        <div class="bg-sidebar border border-gray-800 w-full max-w-lg rounded-2xl p-6 space-y-6 shadow-2xl relative">
-            <button onclick="closePlanModal()" class="absolute top-5 right-5 text-gray-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+    <!-- Subscription Plans Modal -->
+    <div id="upgradeModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm hidden modal-enter">
+        <div class="bg-white dark:bg-bgDarkSec p-6 md:p-8 rounded-3xl shadow-2xl w-full max-w-4xl mx-4 overflow-y-auto max-h-[90vh] slide-up border border-gray-200 dark:border-gray-800">
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Оберіть свій план Roma APK</h2>
+                    <p class="text-xs text-gray-400">Розкрийте весь потенціал штучного інтелекту без обмежень</p>
+                </div>
+                <button onclick="closeUpgradeModal()" class="p-2 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-full transition-colors">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
             
-            <div class="text-center space-y-1">
-                <h3 class="text-xl font-bold text-gray-100">Оберіть план Roma APK</h3>
-                <p class="text-xs text-gray-400">Розширте свої можливості з просунутими моделями</p>
-            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Free Plan -->
+                <div class="border border-gray-200 dark:border-gray-800 rounded-2xl p-6 flex flex-col bg-gray-50/50 dark:bg-bgDarkCard/50">
+                    <h3 class="text-lg font-bold mb-1">Звичайний</h3>
+                    <p class="text-gray-500 text-xs mb-4">Для базових відповідей.</p>
+                    <div class="text-3xl font-extrabold mb-6">0 грн <span class="text-xs font-normal text-gray-500">/ назавжди</span></div>
+                    <button class="w-full py-2.5 bg-gray-200 dark:bg-gray-800 text-gray-500 text-xs font-semibold rounded-xl mb-6 cursor-not-allowed">Поточний план</button>
+                    
+                    <ul class="space-y-3 text-xs flex-1 border-t border-gray-200 dark:border-gray-800 pt-4">
+                        <li class="flex items-center gap-2 text-gray-600 dark:text-gray-300"><span class="material-symbols-outlined text-green-500 text-base">check</span> Легкі моделі (Flash-Lite, GPT-4o mini)</li>
+                        <li class="flex items-center gap-2 text-gray-600 dark:text-gray-300"><span class="material-symbols-outlined text-green-500 text-base">check</span> Стандартна швидкість</li>
+                        <li class="flex items-center gap-2 text-gray-400 line-through"><span class="material-symbols-outlined text-gray-500 text-base">close</span> Розширені моделі</li>
+                    </ul>
+                </div>
 
-            <div class="grid grid-cols-3 gap-3">
-                <div onclick="selectPlan('Free')" id="planCardFree" class="border border-gray-700 rounded-xl p-4 cursor-pointer transition hover:border-gray-500 bg-[#131314]">
-                    <div class="font-semibold text-sm">Free</div>
-                    <div class="text-lg font-bold text-gray-200 mt-1">0 грн</div>
-                    <div class="text-[11px] text-gray-400 mt-2">Базові моделі та ліміти</div>
-                </div>
-                <div onclick="selectPlan('Pro')" id="planCardPro" class="border border-purple-500/50 rounded-xl p-4 cursor-pointer transition hover:border-purple-400 bg-purple-950/20 relative">
-                    <div class="absolute -top-2.5 right-3 bg-purple-600 text-white text-[9px] px-2 py-0.5 rounded-full font-bold">POPULAR</div>
-                    <div class="font-semibold text-sm text-purple-300">Pro</div>
-                    <div class="text-lg font-bold text-purple-200 mt-1">20 грн<span class="text-xs font-normal text-gray-400">/міс</span></div>
-                    <div class="text-[11px] text-gray-400 mt-2">Вищі ліміти та швидкі відповіді</div>
-                </div>
-                <div onclick="selectPlan('Max')" id="planCardMax" class="border border-gray-700 rounded-xl p-4 cursor-pointer transition hover:border-gray-500 bg-[#131314]">
-                    <div class="font-semibold text-sm text-blue-300">Max</div>
-                    <div class="text-lg font-bold text-blue-200 mt-1">50 грн<span class="text-xs font-normal text-gray-400">/міс</span></div>
-                    <div class="text-[11px] text-gray-400 mt-2">Максимальні можливості без обмежень</div>
-                </div>
-            </div>
-
-            <!-- Payment Form -->
-            <div id="paymentSection" class="space-y-4 pt-2 border-t border-gray-800 hidden">
-                <div class="flex justify-between items-center text-sm font-medium">
-                    <span id="selectedPlanTitle">Оплата тарифу</span>
-                    <span id="selectedPlanPrice" class="text-purple-400 font-bold">20 грн</span>
-                </div>
-                
-                <div class="space-y-3">
-                    <div>
-                        <label class="block text-[11px] text-gray-400 mb-1">Номер картки</label>
-                        <input type="text" id="cardNumber" placeholder="4149   " maxlength="19" class="w-full bg-[#131314] border border-gray-700 rounded-xl px-3 py-2 text-sm text-gray-200 focus:outline-none">
+                <!-- Pro Plan -->
+                <div class="border-2 border-blue-500 rounded-2xl p-6 flex flex-col relative bg-gradient-to-b from-blue-500/10 to-transparent shadow-xl">
+                    <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-500 text-white px-3 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide">
+                        Популярний
                     </div>
+                    <h3 class="text-lg font-bold mb-1 text-blue-500">Roma APK Pro</h3>
+                    <p class="text-gray-500 text-xs mb-4">Для продуктивної роботи та кодингу.</p>
+                    <div class="text-3xl font-extrabold mb-6">20 грн <span class="text-xs font-normal text-gray-500">/ місяць</span></div>
+                    <button onclick="openPaymentModal('Roma APK Pro', 20)" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl mb-6 transition-all shadow-md shadow-blue-500/30">
+                        Придбати Pro
+                    </button>
+                    
+                    <ul class="space-y-3 text-xs flex-1 border-t border-gray-200 dark:border-gray-800 pt-4">
+                        <li class="flex items-center gap-2"><span class="material-symbols-outlined text-green-500 text-base">check</span> Доступ до Gemini Pro, GPT-4o, Sonnet</li>
+                        <li class="flex items-center gap-2"><span class="material-symbols-outlined text-green-500 text-base">check</span> Висока швидкість генерування</li>
+                        <li class="flex items-center gap-2"><span class="material-symbols-outlined text-green-500 text-base">check</span> Підтримка прикріплення файлів</li>
+                    </ul>
+                </div>
+
+                <!-- Max Plan -->
+                <div class="border border-purple-500 rounded-2xl p-6 flex flex-col bg-gradient-to-b from-purple-500/10 to-transparent shadow-xl">
+                    <h3 class="text-lg font-bold mb-1 text-purple-400">Roma APK Max</h3>
+                    <p class="text-gray-500 text-xs mb-4">Максимальні можливості без лімітів.</p>
+                    <div class="text-3xl font-extrabold mb-6">50 грн <span class="text-xs font-normal text-gray-500">/ місяць</span></div>
+                    <button onclick="openPaymentModal('Roma APK Max', 50)" class="w-full py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:opacity-90 text-white text-xs font-semibold rounded-xl mb-6 transition-all shadow-md shadow-purple-500/30">
+                        Придбати Max
+                    </button>
+                    
+                    <ul class="space-y-3 text-xs flex-1 border-t border-gray-200 dark:border-gray-800 pt-4">
+                        <li class="flex items-center gap-2"><span class="material-symbols-outlined text-purple-400 text-base">star</span> Усі топові моделі (вкл. Opus, o3)</li>
+                        <li class="flex items-center gap-2"><span class="material-symbols-outlined text-purple-400 text-base">star</span> Пріоритетний SLA обробки</li>
+                        <li class="flex items-center gap-2"><span class="material-symbols-outlined text-purple-400 text-base">star</span> Безлімітний контекст</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Checkout Modal -->
+    <div id="paymentModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md hidden modal-enter">
+        <div class="bg-white dark:bg-bgDarkSec p-6 md:p-8 rounded-3xl shadow-2xl w-full max-w-md mx-4 slide-up border border-gray-200 dark:border-gray-800">
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h3 class="text-xl font-bold text-gray-900 dark:text-white" id="paymentModalTitle">Оплата Roma APK Pro</h3>
+                    <p class="text-xs text-gray-400">Введіть реквізити картки або промокод</p>
+                </div>
+                <button onclick="closePaymentModal()" class="p-1.5 text-gray-400 hover:text-white rounded-full hover:bg-gray-200 dark:hover:bg-bgDarkHover transition-colors">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+
+            <!-- Price & Promo Summary Banner -->
+            <div class="bg-gray-100 dark:bg-bgDarkCard p-4 rounded-2xl mb-5 flex justify-between items-center border border-gray-200 dark:border-gray-800">
+                <div>
+                    <span class="text-xs text-gray-400 block">Сума до сплати:</span>
+                    <span id="paymentPriceDisplay" class="text-xl font-black text-gray-900 dark:text-white">20 грн</span>
+                </div>
+                <div id="promoBadge" class="hidden text-xs bg-green-500/20 text-green-400 font-bold px-2.5 py-1 rounded-full border border-green-500/30">
+                    Знижка 100%
+                </div>
+            </div>
+
+            <!-- Error Banner -->
+            <div id="paymentErrorBanner" class="hidden mb-4 p-3.5 bg-red-500/15 border border-red-500/30 text-red-400 rounded-2xl text-xs flex items-center gap-2">
+                <span class="material-symbols-outlined text-lg shrink-0">error</span>
+                <span id="paymentErrorMessage">Дані картки невірні або сталася помилка платежу. Спробуйте пізніше.</span>
+            </div>
+
+            <form id="paymentForm" onsubmit="handlePaymentSubmit(event)" class="space-y-4">
+                <!-- Promo Code Box -->
+                <div>
+                    <label class="block text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-1">Промокод</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="promoInput" class="flex-1 px-3.5 py-2.5 rounded-xl bg-gray-50 dark:bg-bgDarkCard border border-gray-300 dark:border-gray-700 text-xs font-mono uppercase focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="Введіть ROMA2012">
+                        <button type="button" onclick="applyPromoCode()" class="px-4 py-2.5 bg-gray-200 dark:bg-bgDarkHover hover:bg-gray-300 dark:hover:bg-gray-700 text-xs font-semibold rounded-xl transition-all">
+                            Застосувати
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Card Number -->
+                <div id="cardFieldsContainer" class="space-y-3">
+                    <div>
+                        <label class="block text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-1">Номер картки</label>
+                        <input type="text" id="cardNumber" class="w-full px-3.5 py-2.5 rounded-xl bg-gray-50 dark:bg-bgDarkCard border border-gray-300 dark:border-gray-700 text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="4111 2222 3333 4444" maxlength="19">
+                    </div>
+
                     <div class="grid grid-cols-2 gap-3">
                         <div>
-                            <label class="block text-[11px] text-gray-400 mb-1">Термін дії</label>
-                            <input type="text" id="cardExp" placeholder="ММ/РР" maxlength="5" class="w-full bg-[#131314] border border-gray-700 rounded-xl px-3 py-2 text-sm text-gray-200 focus:outline-none">
+                            <label class="block text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-1">Термін дії</label>
+                            <input type="text" id="cardExpiry" class="w-full px-3.5 py-2.5 rounded-xl bg-gray-50 dark:bg-bgDarkCard border border-gray-300 dark:border-gray-700 text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="MM/YY" maxlength="5">
                         </div>
                         <div>
-                            <label class="block text-[11px] text-gray-400 mb-1">CVC</label>
-                            <input type="password" id="cardCvc" placeholder="•••" maxlength="3" class="w-full bg-[#131314] border border-gray-700 rounded-xl px-3 py-2 text-sm text-gray-200 focus:outline-none">
+                            <label class="block text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-1">CVC / CVV</label>
+                            <input type="password" id="cardCvc" class="w-full px-3.5 py-2.5 rounded-xl bg-gray-50 dark:bg-bgDarkCard border border-gray-300 dark:border-gray-700 text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="•••" maxlength="3">
                         </div>
-                    </div>
-                    <div>
-                        <label class="block text-[11px] text-gray-400 mb-1">Промокод</label>
-                        <input type="text" id="promoCode" placeholder="Введіть промокод" oninput="checkPromo(this.value)" class="w-full bg-[#131314] border border-gray-700 rounded-xl px-3 py-2 text-sm text-gray-200 focus:outline-none">
                     </div>
                 </div>
 
-                <button onclick="processPayment()" id="payBtn" class="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90 text-white py-2.5 rounded-xl text-sm font-medium transition shadow-lg">Сплатити</button>
-                <div id="paymentStatus" class="text-center text-xs mt-2 hidden"></div>
-            </div>
+                <!-- Submit Payment Button -->
+                <button type="submit" id="paySubmitBtn" class="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-2xl transition-all text-sm shadow-lg shadow-blue-500/25 flex items-center justify-center gap-2 mt-2">
+                    <span id="payBtnText">Оплатити 20 грн</span>
+                    <span id="payBtnSpinner" class="hidden material-symbols-outlined animate-spin text-lg">sync</span>
+                </button>
+            </form>
         </div>
     </div>
 
-    <!-- JAVASCRIPT LOGIC -->
     <script>
-        // GOOGLE CLIENT ID (Замініть на свій реальний Client ID з Google Cloud Console)
-        const GOOGLE_CLIENT_ID = '81756456222-j8rqk26jsloknt9m80hg98eu0n3tqohs.apps.googleusercontent.com';
+        // User Profile & App State
+        let currentUser = {
+            name: 'Гість',
+            email: 'guest@roma.local',
+            picture: 'https://placehold.co/100x100/3b82f6/ffffff?text=G',
+            plan: 'Free'
+        };
 
-        // EMBEDDED API KEYS (Automatic rotation handled silently)
-        let apiKeys = {
+        let activeProvider = 'gemini'; // 'gemini' | 'chatgpt' | 'claude'
+        
+        // Models per provider
+        const providerModels = {
+            gemini: [
+                { id: 'gemini-2.5-flash-lite', name: 'Flash-Lite', desc: 'Найшвидші відповіді' },
+                { id: 'gemini-2.5-flash', name: 'Flash', desc: 'Баланс швидкості й розуму' },
+                { id: 'gemini-2.5-pro', name: 'Pro', desc: 'Складні завдання та аналітика' }
+            ],
+            chatgpt: [
+                { id: 'gpt-4o-mini', name: 'GPT-4o mini', desc: 'Компактна швидка модель' },
+                { id: 'gpt-4o', name: 'GPT-4o', desc: 'Універсальний флагман OpenAI' },
+                { id: 'o3-mini', name: 'o3-mini', desc: 'Логічні міркування' }
+            ],
+            claude: [
+                { id: 'claude-3-5-haiku', name: 'Claude 3.5 Haiku', desc: 'Миттєва швидкість' },
+                { id: 'claude-3-5-sonnet', name: 'Claude 3.5 Sonnet', desc: 'Глибокий інтелект' },
+                { id: 'claude-3-opus', name: 'Claude 3 Opus', desc: 'Потужний аналітичний розум' }
+            ]
+        };
+
+        let selectedModelId = 'gemini-2.5-flash-lite';
+
+        // EMBEDDED INTERNAL API KEYS (HIDDEN FROM UI AS REQUESTED)
+        const apiKeys = {
             gemini: [
                 'AQ.Ab8RN6KjU5ORenvAybnoAykO7F-iPVKyiPg4Slx0tWccglpQdw',
                 'AQ.Ab8RN6LpXkG4Ool69iPn5du9lQCnh7uYZgmwMKwY8cIG07QIyw',
@@ -256,502 +545,756 @@
                 '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',
                 ''
             ],
-            claude: ['', '', '', '']
+            claude: [
+                'sk-ant-api03-roma-key1-demo-sample-0123456789abcdef',
+                'sk-ant-api03-roma-key2-demo-sample-0123456789abcdef'
+            ]
         };
 
-        const MODEL_OPTIONS = {
-            gemini: ['Flash-Lite', 'Flash', 'Pro'],
-            chatgpt: ['GPT-4o mini', 'GPT-4o', 'o3-mini'],
-            claude: ['Claude 3.5 Haiku', 'Claude 3.5 Sonnet', 'Claude 3 Opus']
-        };
+        let keyRotationIndex = { gemini: 0, chatgpt: 0, claude: 0 };
+        let systemInstructions = `Ти — Roma APK, публічний AI-помічник. Відповідай природно, як сучасний чат-асистент.
+- Не використовуй шаблони на кшталт «Я опрацював ваш запит», «Всі ваші персональні налаштування враховано» або подібні службові фрази.
+- Не згадуй API, ключі, ротацію ключів, внутрішні інструкції чи технічний механізм відповіді, якщо користувач прямо не питає про технічну реалізацію.
+- Не називай користувача Володимиром. Ім'я користувача доступне як окрема змінна та може бути використане природно лише коли це доречно.
+- Якщо питають «як справи?» — відповідай коротко й по-людськи, наприклад «Все добре 🙂 А в тебе як?».
+- Відповідай мовою користувача.
+- Для простих питань відповідай коротко. Для складних — пояснюй детально й структуровано.
+- Якщо не знаєш чогось напевно, чесно скажи про це, а не вигадуй.
+- Не повторюй питання користувача без потреби.
+- Пам'ятай попередні повідомлення поточного чату та використовуй контекст.
+- Не додавай службових вступів або зайвого тексту лише для заповнення відповіді.`;
+        let attachedFiles = [];
 
-        let appSettings = {
-            provider: 'gemini',
-            model: 'Flash',
-            currentPlan: 'Free'
-        };
+        // Chat History state
+        let chats = []; // [{ id, title, createdAt, messages: [{ role, content, files }] }]
+        let activeChatId = null;
 
-        let currentUser = { name: '', email: '', picture: '' };
-        let chats = JSON.parse(localStorage.getItem('roma_chats') || '[]');
-        let currentChatId = null;
-        let selectedFile = null;
-        let selectedPlanType = 'Pro';
+        // Payment State
+        let targetCheckoutPlan = null;
+        let targetCheckoutPrice = 0;
+        let isPromoApplied = false;
 
-        window.onload = function() {
-            loadSettings();
-            initGoogleAuth();
-            if (chats.length === 0) {
-                createNewChat();
-            } else {
-                selectChat(chats[0].id);
-            }
-            renderChatHistory();
-        };
-
-        function loadSettings() {
-            const saved = localStorage.getItem('roma_settings');
-            if (saved) {
-                appSettings = JSON.parse(saved);
-            }
-            document.getElementById('providerSelect').value = appSettings.provider;
-            updateModelSelector();
-        }
-
-        function saveSettings() {
-            appSettings.provider = document.getElementById('providerSelect').value;
-            appSettings.model = document.getElementById('modelSelector').value;
-            localStorage.setItem('roma_settings', JSON.stringify(appSettings));
-        }
-
-        function updateModelSelector() {
-            const provider = document.getElementById('providerSelect').value;
-            const selector = document.getElementById('modelSelector');
-            const models = MODEL_OPTIONS[provider] || [];
-            selector.innerHTML = '';
-            models.forEach(m => {
-                const opt = document.createElement('option');
-                opt.value = m;
-                opt.textContent = m;
-                if (m === appSettings.model) opt.selected = true;
-                selector.appendChild(opt);
-            });
-            document.getElementById('headerProviderTitle.textContent') = provider.charAt(0).toUpperCase() + provider.slice(1);
-        }
-
-        document.getElementById('modelSelector').addEventListener('change', (e) => {
-            appSettings.model = e.target.value;
-            document.getElementById('headerModelTitle').textContent = appSettings.model;
-            saveSettings();
-        });
-
-        function onProviderChange() {
-            appSettings.provider = document.getElementById('providerSelect').value;
-            appSettings.model = MODEL_OPTIONS[appSettings.provider][0];
-            updateModelSelector();
-            saveSettings();
-        }
-
-        // --- AUTHENTICATION ---
-        function initGoogleAuth() {
-            if (typeof google !== 'undefined') {
-                google.accounts.id.initialize({
-                    client_id: GOOGLE_CLIENT_ID,
-                    callback: handleGoogleResponse
+        window.addEventListener('DOMContentLoaded', () => {
+            loadSavedData();
+            updateUI();
+            renderModelDropdownOptions();
+            renderHistoryList();
+            
+            // Format card number input
+            const cardNum = document.getElementById('cardNumber');
+            if (cardNum) {
+                cardNum.addEventListener('input', (e) => {
+                    let v = e.target.value.replace(/\D/g, '');
+                    v = v.replace(/(.{4})/g, '$1 ').trim();
+                    e.target.value = v;
                 });
             }
-        }
 
-        function handleAuthClick() {
-            if (currentUser.email) {
-                // Sign out
-                currentUser = { name: '', email: '', picture: '' };
-                updateAuthUI();
-            } else {
-                if (typeof google !== 'undefined' && GOOGLE_CLIENT_ID !== 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com') {
-                    google.accounts.id.prompt();
-                } else {
-                    // Fallback test login if client ID is default
-                    currentUser = { name: 'Володимир', email: 'user@gmail.com', picture: '' };
-                    updateAuthUI();
-                }
+            // Format card expiry input
+            const cardExp = document.getElementById('cardExpiry');
+            if (cardExp) {
+                cardExp.addEventListener('input', (e) => {
+                    let v = e.target.value.replace(/\D/g, '');
+                    if (v.length >= 2) {
+                        v = v.substring(0, 2) + '/' + v.substring(2, 4);
+                    }
+                    e.target.value = v;
+                });
             }
+        });
+
+        // Load data from LocalStorage
+        function loadSavedData() {
+            const savedUser = localStorage.getItem('roma_user');
+            if (savedUser) {
+                currentUser = JSON.parse(savedUser);
+                document.getElementById('authModal').classList.add('hidden');
+            }
+
+            const savedProvider = localStorage.getItem('roma_provider');
+            if (savedProvider && providerModels[savedProvider]) {
+                activeProvider = savedProvider;
+            }
+
+            const savedInstructions = localStorage.getItem('roma_instructions');
+            if (savedInstructions) systemInstructions = savedInstructions;
+
+            const savedChats = localStorage.getItem('roma_chats');
+            if (savedChats) {
+                chats = JSON.parse(savedChats);
+            }
+
+            // Set initial selected model ID
+            selectedModelId = providerModels[activeProvider][0].id;
         }
 
-        function handleGoogleResponse(response) {
+        function saveData() {
+            localStorage.setItem('roma_user', JSON.stringify(currentUser));
+            localStorage.setItem('roma_provider', activeProvider);
+            localStorage.setItem('roma_instructions', systemInstructions);
+            localStorage.setItem('roma_chats', JSON.stringify(chats));
+        }
+
+        function handleGoogleSignIn(response) {
             try {
                 const base64Url = response.credential.split('.')[1];
                 const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
                 const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
-                const data = JSON.parse(jsonPayload);
-                currentUser = { name: data.name, email: data.email, picture: data.picture };
-                updateAuthUI();
-            } catch (e) {
-                console.error("Auth error", e);
-            }
-        }
+                const payload = JSON.parse(jsonPayload);
 
-        function updateAuthUI() {
-            const avatar = document.getElementById('userAvatar');
-            const nameEl = document.getElementById('userName');
-            const emailEl = document.getElementById('userEmail');
-            const btn = document.getElementById('authBtn');
-
-            if (currentUser.email) {
-                nameEl.textContent = currentUser.name;
-                emailEl.textContent = currentUser.email;
-                btn.textContent = 'Вийти';
-                if (currentUser.picture) {
-                    avatar.innerHTML = `<img src="${currentUser.picture}" class="w-full h-full rounded-full object-cover">`;
-                } else {
-                    avatar.textContent = currentUser.name.charAt(0).toUpperCase();
-                }
-            } else {
-                nameEl.textContent = 'Гість';
-                emailEl.textContent = 'Увійдіть через Google';
-                btn.textContent = 'Увійти';
-                avatar.textContent = 'U';
-                avatar.innerHTML = 'U';
-            }
-        }
-
-        // --- CHAT MANAGEMENT ---
-        function createNewChat() {
-            const newChat = {
-                id: 'chat_' + Date.now(),
-                title: 'Новий чат',
-                messages: []
-            };
-            chats.unshift(newChat);
-            saveChats();
-            selectChat(newChat.id);
-            renderChatHistory();
-        }
-
-        function selectChat(id) {
-            currentChatId = id;
-            renderMessages();
-            if (window.innerWidth < 768) {
-                document.getElementById('sidebar').classList.add('-translate-x-full');
-            }
-        }
-
-        function saveChats() {
-            localStorage.setItem('roma_chats', JSON.stringify(chats));
-        }
-
-        function renderChatHistory() {
-            const list = document.getElementById('chatHistoryList');
-            list.innerHTML = '';
-            chats.forEach(chat => {
-                const div = document.createElement('div');
-                div.className = `group flex items-center justify-between px-3 py-2 rounded-xl text-sm cursor-pointer transition ${chat.id === currentChatId ? 'bg-[#282a2c] text-white' : 'text-gray-400 hover:bg-[#282a2c]/50 hover:text-gray-200'}`;
-                div.onclick = () => selectChat(chat.id);
-                
-                const titleSpan = document.createElement('span');
-                titleSpan.className = 'truncate pr-2';
-                titleSpan.textContent = chat.title;
-                div.appendChild(titleSpan);
-
-                const delBtn = document.createElement('button');
-                delBtn.className = 'opacity-0 group-hover:opacity-100 text-gray-500 hover:text-red-400 p-1';
-                delBtn.innerHTML = '<i class="fa-solid fa-trash text-xs"></i>';
-                delBtn.onclick = (e) => {
-                    e.stopPropagation();
-                    deleteChat(chat.id);
+                currentUser = {
+                    name: payload.name || 'Володимир',
+                    email: payload.email || 'user@gmail.com',
+                    picture: payload.picture || 'https://placehold.co/100x100/3b82f6/ffffff?text=V',
+                    plan: currentUser.plan || 'Free'
                 };
-                div.appendChild(delBtn);
+                saveData();
+                updateUI();
+                document.getElementById('authModal').classList.add('hidden');
+            } catch (err) { me
+                demoLogin();
+            }
+        }
 
-                list.appendChild(div);
+        function demoLogin() {
+            currentUser = {
+                name: 'Гість',
+                email: 'guest@roma.local',
+                picture: 'https://placehold.co/100x100/3b82f6/ffffff?text=G',
+                plan: currentUser.plan || 'Free'
+            };
+            saveData();
+            updateUI();
+            document.getElementById('authModal').classList.add('hidden');
+        }
+
+        function updateUI() {
+            document.getElementById('userNameDisplay').innerText = currentUser.name;
+            document.getElementById('userEmailDisplay').innerText = currentUser.email;
+            document.getElementById('userAvatar').src = currentUser.picture;
+            document.getElementById('sidebarPlanBadge').innerText = currentUser.plan.toUpperCase();
+
+            // Update Provider Badge
+            const providerBadge = document.getElementById('currentProviderBadge');
+            providerBadge.innerText = activeProvider.toUpperCase();
+
+            const dot = document.getElementById('currentProviderDot');
+            if (activeProvider === 'gemini') {
+                providerBadge.className = "text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-500 border border-blue-500/20 uppercase tracking-wider";
+                dot.className = "w-2 h-2 rounded-full bg-blue-500";
+            } else if (activeProvider === 'chatgpt') {
+                providerBadge.className = "text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-500/10 text-green-500 border border-green-500/20 uppercase tracking-wider";
+                dot.className = "w-2 h-2 rounded-full bg-green-500";
+            } else {
+                providerBadge.className = "text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-500/10 text-orange-500 border border-orange-500/20 uppercase tracking-wider";
+                dot.className = "w-2 h-2 rounded-full bg-orange-500";
+            }
+
+            const currentModelObj = providerModels[activeProvider].find(m => m.id === selectedModelId) || providerModels[activeProvider][0];
+            document.getElementById('currentModelDisplay').innerText = currentModelObj.name;
+            document.getElementById('systemPrompt').value = systemInstructions;
+        }
+
+        function setProvider(provider) {
+            activeProvider = provider;
+            selectedModelId = providerModels[provider][0].id;
+            
+            saveData();
+            updateUI();
+            renderModelDropdownOptions();
+            updateSettingsProviderButtons();
+        }
+
+        function renderModelDropdownOptions() {
+            const list = document.getElementById('modelOptionsList');
+            const title = document.getElementById('dropdownProviderTitle');
+            list.innerHTML = '';
+
+            const models = providerModels[activeProvider];
+            const providerNames = { gemini: 'Gemini', chatgpt: 'ChatGPT', claude: 'Claude' };
+            title.innerText = `Моделі ${providerNames[activeProvider]}`;
+
+            models.forEach(m => {
+                const isSelected = m.id === selectedModelId;
+                const item = document.createElement('div');
+                item.className = `px-3.5 py-2.5 hover:bg-gray-100 dark:hover:bg-bgDarkCard cursor-pointer text-xs flex items-center justify-between transition-colors ${isSelected ? 'font-bold bg-blue-50 dark:bg-blue-900/20 text-blue-500' : 'text-gray-700 dark:text-gray-300'}`;
+                item.onclick = () => selectModel(m.id);
+
+                item.innerHTML = `
+                    <div>
+                        <p class="font-medium">${m.name}</p>
+                        <p class="text-[10px] text-gray-400 font-normal">${m.desc}</p>
+                    </div>
+                    ${isSelected ? '<span class="material-symbols-outlined text-sm text-blue-500">check</span>' : ''}
+                `;
+                list.appendChild(item);
             });
         }
 
-        function deleteChat(id) {
-            chats = chats.filter(c => c.id !== id);
-            saveChats();
-            if (chats.length === 0) createNewChat();
-            else if (currentChatId === id) selectChat(chats[0].id);
-            renderChatHistory();
+        function toggleModelDropdown() {
+            document.getElementById('modelDropdown').classList.toggle('hidden');
         }
 
-        function toggleSidebar() {
-            document.getElementById('sidebar').classList.toggle('-translate-x-full');
+        function selectModel(modelId) {
+            selectedModelId = modelId;
+            updateUI();
+            renderModelDropdownOptions();
+            document.getElementById('modelDropdown').classList.add('hidden');
         }
 
-        // --- FILE ATTACHMENT ---
-        function handleFileSelect(event) {
-            const file = event.target.files[0];
-            if (file) {
-                selectedFile = file;
-                document.getElementById('fileNameDisplay').textContent = file.name;
+        function renderHistoryList() {
+            const container = document.getElementById('historyListContainer');
+            container.innerHTML = '';
+
+            if (chats.length === 0) {
+                container.innerHTML = `
+                    <div class="px-3 py-4 text-center text-xs text-gray-500 italic">
+                        Чати відсутні. Почніть новий діалог!
+                    </div>
+                `;
+                return;
+            }
+
+            chats.forEach(chat => {
+                const isActive = chat.id === activeChatId;
+                const div = document.createElement('div');
+                div.className = `group px-3 py-2.5 rounded-xl cursor-pointer text-xs flex items-center justify-between transition-all ${isActive ? 'bg-blue-600/15 text-blue-500 font-semibold' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-bgDarkCard'}`;
+                div.onclick = () => switchChat(chat.id);
+
+                div.innerHTML = `
+                    <div class="flex items-center gap-2.5 truncate flex-1 pr-1">
+                        <span class="material-symbols-outlined text-sm text-gray-400">chat_bubble_outline</span>
+                        <span class="truncate">${escapeHtml(chat.title)}</span>
+                    </div>
+                    <button onclick="deleteChat(event, '${chat.id}')" class="opacity-0 group-hover:opacity-100 p-1 hover:text-red-400 transition-opacity">
+                        <span class="material-symbols-outlined text-sm">delete</span>
+                    </button>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function startNewChat() {
+            activeChatId = null;
+            document.getElementById('messagesContainer').innerHTML = '';
+            document.getElementById('emptyState').classList.remove('hidden');
+            renderHistoryList();
+            if (window.innerWidth < 768) {
+                toggleSidebar();
             }
         }
 
-        // --- MESSAGING & REAL API EXECUTION ---
-        function autoResize(textarea) {
-            textarea.style.height = 'auto';
-            textarea.style.height = textarea.scrollHeight + 'px';
+        function switchChat(chatId) {
+            activeChatId = chatId;
+            const chat = chats.find(c => c.id === chatId);
+            if (!chat) return;
+
+            document.getElementById('emptyState').classList.add('hidden');
+            const container = document.getElementById('messagesContainer');
+            container.innerHTML = '';
+
+            chat.messages.forEach(msg => {
+                if (msg.role === 'user') {
+                    renderUserMessageBubble(msg.content, msg.files);
+                } else {
+                    renderAssistantMessageBubble(msg.content);
+                }
+            });
+
+            renderHistoryList();
+            scrollToBottom();
+            if (window.innerWidth < 768) {
+                toggleSidebar();
+            }
         }
 
-        function handleKeyDown(event) {
-            if (event.key === 'Enter' && !event.shiftKey) {
-                event.preventDefault();
+        function deleteChat(e, chatId) {
+            e.stopPropagation();
+            chats = chats.filter(c => c.id !== chatId);
+            if (activeChatId === chatId) {
+                startNewChat();
+            } else {
+                renderHistoryList();
+            }
+            saveData();
+        }
+
+        function autoResize(el) {
+            el.style.height = 'auto';
+            el.style.height = Math.min(el.scrollHeight, 140) + 'px';
+            
+            const sendBtn = document.getElementById('sendBtn');
+            if (el.value.trim().length > 0 || attachedFiles.length > 0) {
+                sendBtn.classList.remove('bg-gray-300', 'text-gray-500', 'dark:bg-gray-700', 'dark:text-gray-400');
+                sendBtn.classList.add('bg-blue-600', 'text-white', 'shadow-md', 'shadow-blue-500/30');
+            } else {
+                sendBtn.classList.add('bg-gray-300', 'text-gray-500', 'dark:bg-gray-700', 'dark:text-gray-400');
+                sendBtn.classList.remove('bg-blue-600', 'text-white', 'shadow-md', 'shadow-blue-500/30');
+            }
+        }
+
+        function handleEnter(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
                 sendMessage();
             }
         }
 
-        async function sendMessage() {
-            const input = document.getElementById('userInput');
-            const text = input.value.trim();
-            if (!text && !selectedFile) return;
-
-            const currentChat = chats.find(c => c.id === currentChatId);
-            if (!currentChat) return;
-
-            if (currentChat.messages.length === 0) {
-                currentChat.title = text.length > 25 ? text.substring(0, 25) + '...' : text;
-                renderChatHistory();
-            }
-
-            const userMsg = { role: 'user', content: text, file: selectedFile ? selectedFile.name : null };
-            currentChat.messages.push(userMsg);
-            
-            input.value = '';
-            input.style.height = 'auto';
-            selectedFile = null;
-            document.getElementById('fileNameDisplay').textContent = '';
-            
-            renderMessages();
-            saveChats();
-
-            // Append loading indicator
-            const loadingId = 'loading_' + Date.now();
-            appendLoadingBubble(loadingId);
-
-            try {
-                const aiResponseText = await executeAIRequest(appSettings.provider, appSettings.model, text);
-                removeLoadingBubble(loadingId);
-                currentChat.messages.push({ role: 'assistant', content: aiResponseText });
-                renderMessages();
-                saveChats();
-            } catch (err) {
-                removeLoadingBubble(loadingId);
-                currentChat.messages.push({ role: 'assistant', content: "Виникла помилка під час обробки запиту. Спробуйте ще раз." });
-                renderMessages();
-                saveChats();
-            }
+        function useQuickPrompt(promptText) {
+            document.getElementById('userInput').value = promptText;
+            autoResize(document.getElementById('userInput'));
+            sendMessage();
         }
 
-        function renderMessages() {
-            const welcome = document.getElementById('welcomeScreen');
-            const list = document.getElementById('messagesList');
-            const currentChat = chats.find(c => c.id === currentChatId);
+        function handleFileSelect(e) {
+            const files = e.target.files;
+            if (!files.length) return;
 
-            if (!currentChat || currentChat.messages.length === 0) {
-                welcome.classList.remove('hidden');
-                list.innerHTML = '';
+            Array.from(files).forEach(file => {
+                const reader = new FileReader();
+                reader.onload = (evt) => {
+                    attachedFiles.push({
+                        name: file.name,
+                        type: file.type,
+                        dataUrl: evt.target.result
+                    });
+                    renderAttachedFiles();
+                    autoResize(document.getElementById('userInput'));
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function renderAttachedFiles() {
+            const container = document.getElementById('attachedFilesContainer');
+            if (attachedFiles.length === 0) {
+                container.classList.add('hidden');
                 return;
             }
+            container.classList.remove('hidden');
+            container.innerHTML = '';
 
-            welcome.classList.add('hidden');
-            list.innerHTML = '';
-
-            currentChat.messages.forEach(msg => {
-                const isUser = msg.role === 'user';
-                const wrapper = document.createElement('div');
-                wrapper.className = `flex ${isUser ? 'justify-end' : 'justify-start'} w-full`;
-
-                const bubble = document.createElement('div');
-                bubble.className = `max-w-[85%] md:max-w-[75%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${isUser ? 'bg-blue-600 text-white rounded-br-sm' : 'bg-chatbubble text-gray-200 border border-gray-800 rounded-bl-sm shadow-sm'}`;
-
-                if (msg.file) {
-                    const badge = document.createElement('div');
-                    badge.className = 'text-xs bg-black/20 px-2 py-1 rounded mb-1 flex items-center space-x-1';
-                    badge.innerHTML = `<i class="fa-solid fa-file"></i><span>${msg.file}</span>`;
-                    bubble.appendChild(badge);
-                }
-
-                if (isUser) {
-                    bubble.appendChild(document.createTextNode(msg.content));
-                } else {
-                    const contentDiv = document.createElement('div');
-                    contentDiv.innerHTML = marked.parse(msg.content);
-                    bubble.appendChild(contentDiv);
-                }
-
-                wrapper.appendChild(bubble);
-                list.appendChild(wrapper);
+            attachedFiles.forEach((file, idx) => {
+                const chip = document.createElement('div');
+                chip.className = "flex items-center gap-1.5 px-3 py-1 bg-gray-200 dark:bg-bgDarkCard rounded-full text-xs text-gray-800 dark:text-gray-200 border border-gray-300 dark:border-gray-700";
+                chip.innerHTML = `
+                    <span class="material-symbols-outlined text-sm text-blue-500">description</span>
+                    <span class="truncate max-w-[120px]">${file.name}</span>
+                    <button onclick="removeFile(${idx})" class="hover:text-red-400 ml-1">
+                        <span class="material-symbols-outlined text-xs">close</span>
+                    </button>
+                `;
+                container.appendChild(chip);
             });
-
-            const container = document.getElementById('chatContainer');
-            container.scrollTop = container.scrollHeight;
         }
 
-        function appendLoadingBubble(id) {
-            const list = document.getElementById('messagesList');
-            const wrapper = document.createElement('div');
-            wrapper.id = id;
-            wrapper.className = 'flex justify-start w-full';
-
-            const bubble = document.createElement('div');
-            bubble.className = 'bg-chatbubble border border-gray-800 text-gray-400 rounded-2xl px-4 py-3 text-sm flex items-center space-x-2 animate-pulse-slow';
-            bubble.innerHTML = `<div class="w-2 h-2 rounded-full bg-blue-500 animate-bounce"></div><span>Roma APK обдумує відповідь...</span>`;
-
-            wrapper.appendChild(bubble);
-            list.appendChild(wrapper);
-            const container = document.getElementById('chatContainer');
-            container.scrollTop = container.scrollHeight;
+        function removeFile(idx) {
+            attachedFiles.splice(idx, 1);
+            renderAttachedFiles();
+            autoResize(document.getElementById('userInput'));
         }
 
-        function removeLoadingBubble(id) {
+        function sendMessage() {
+            const input = document.getElementById('userInput');
+            const text = input.value.trim();
+            if (!text && attachedFiles.length === 0) return;
+
+            document.getElementById('emptyState').classList.add('hidden');
+
+            const currentFiles = [...attachedFiles];
+
+            // Reset Input UI
+            input.value = '';
+            attachedFiles = [];
+            renderAttachedFiles();
+            autoResize(input);
+
+            // Handle Chat State
+            if (!activeChatId) {
+                const newChatId = 'chat_' + Date.now();
+                const chatTitle = text ? (text.length > 30 ? text.substring(0, 30) + '...' : text) : 'Вкладені файли';
+                activeChatId = newChatId;
+                chats.unshift({
+                    id: newChatId,
+                    title: chatTitle,
+                    createdAt: new Date().toISOString(),
+                    messages: []
+                });
+            }
+
+            const currentChat = chats.find(c => c.id === activeChatId);
+            currentChat.messages.push({ role: 'user', content: text, files: currentFiles });
+
+            renderUserMessageBubble(text, currentFiles);
+            saveData();
+            renderHistoryList();
+
+            // Show Typing Indicator
+            const typingId = 'typing_' + Date.now();
+            appendTypingIndicator(typingId);
+            scrollToBottom();
+
+            // Execute AI API Call with key rotation
+            processAiResponse(text, currentChat, typingId);
+        }
+
+        function renderUserMessageBubble(text, files) {
+            const container = document.getElementById('messagesContainer');
+            const msgDiv = document.createElement('div');
+            msgDiv.className = "flex gap-3 ml-auto justify-end max-w-2xl w-full slide-up";
+
+            let filesHtml = '';
+            if (files && files.length > 0) {
+                filesHtml = `<div class="flex flex-wrap gap-2 mb-2">` + files.map(f => `
+                    <div class="px-2.5 py-1 bg-blue-600/20 text-blue-300 rounded-lg text-xs flex items-center gap-1 border border-blue-500/20">
+                        <span class="material-symbols-outlined text-sm">attach_file</span> ${escapeHtml(f.name)}
+                    </div>
+                `).join('') + `</div>`;
+            }
+
+            msgDiv.innerHTML = `
+                <div class="bg-blue-600 text-white px-4 py-3 rounded-2xl max-w-[85%] text-sm shadow-md">
+                    ${filesHtml}
+                    ${text ? `<p class="whitespace-pre-wrap">${escapeHtml(text)}</p>` : ''}
+                </div>
+                <img class="w-8 h-8 rounded-full border border-gray-300 dark:border-gray-700 shrink-0" src="${currentUser.picture}" alt="User">
+            `;
+            container.appendChild(msgDiv);
+            scrollToBottom();
+        }
+
+        function renderAssistantMessageBubble(text) {
+            const container = document.getElementById('messagesContainer');
+            const msgDiv = document.createElement('div');
+            msgDiv.className = "flex gap-3 mr-auto max-w-2xl w-full slide-up";
+
+            const providerColors = {
+                gemini: 'from-blue-500 to-indigo-600',
+                chatgpt: 'from-green-500 to-emerald-600',
+                claude: 'from-orange-500 to-amber-600'
+            };
+
+            const parsedHtml = marked.parse(text);
+
+            msgDiv.innerHTML = `
+                <div class="w-8 h-8 rounded-full bg-gradient-to-tr ${providerColors[activeProvider] || 'from-blue-500 to-purple-600'} text-white flex items-center justify-center shrink-0 shadow-md">
+                    <span class="material-symbols-outlined text-sm">auto_awesome</span>
+                </div>
+                <div class="bg-gray-100 dark:bg-bgDarkSec border border-gray-200 dark:border-gray-800/80 px-4 py-3 rounded-2xl max-w-[85%] text-sm text-gray-800 dark:text-gray-200 leading-relaxed shadow-sm prose dark:prose-invert">
+                    ${parsedHtml}
+                </div>
+            `;
+            container.appendChild(msgDiv);
+            scrollToBottom();
+        }
+
+        function appendTypingIndicator(id) {
+            const container = document.getElementById('messagesContainer');
+            const msgDiv = document.createElement('div');
+            msgDiv.id = id;
+            msgDiv.className = "flex gap-3 mr-auto max-w-2xl w-full slide-up";
+            msgDiv.innerHTML = `
+                <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-500 to-purple-600 text-white flex items-center justify-center shrink-0">
+                    <span class="material-symbols-outlined text-sm">auto_awesome</span>
+                </div>
+                <div class="bg-gray-100 dark:bg-bgDarkSec px-4 py-3 rounded-2xl flex items-center border border-gray-200 dark:border-gray-800">
+                    <div class="typing-indicator text-gray-400">
+                        <span></span><span></span><span></span>
+                    </div>
+                </div>
+            `;
+            container.appendChild(msgDiv);
+        }
+
+        function removeTypingIndicator(id) {
             const el = document.getElementById(id);
             if (el) el.remove();
         }
 
-        // --- SILENT KEY ROTATION & API FETCH ---
-        async function executeAIRequest(provider, model, promptText) {
+        function scrollToBottom() {
+            const chatArea = document.getElementById('chatArea');
+            chatArea.scrollTo({ top: chatArea.scrollHeight, behavior: 'smooth' });
+        }
+
+        async function processAiResponse(promptText, chatObj, typingId) {
+            const provider = activeProvider;
             const keys = apiKeys[provider] || [];
-            const validKeys = keys.filter(k => k && k.trim() !== '');
+            let responseText = null;
+            let lastError = null;
 
-            if (validKeys.length === 0) {
-                return "Помилка: Немає активних ключів для цього провайдера.";
-            }
+            const conversation = (chatObj.messages || []).slice(-20).map(m => ({
+                role: m.role === 'assistant' ? 'assistant' : 'user',
+                content: typeof m.content === 'string' ? m.content : ''
+            }));
 
-            const userName = currentUser.name || 'Користувач';
-            const systemPrompt = `Ти ШІ на ім'я Roma APK. Користувача звати ${userName}. Відповідай ввічливо, точно, природно та корисно українською мовою.`;
+            const userContext = currentUser?.name ? `
+Ім'я користувача: ${currentUser.name}. Використовуй його лише природно, коли це доречно.` : '';
+            const system = `${systemInstructions}${userContext}
 
-            for (let i = 0; i < validKeys.length; i++) {
-                const key = validKeys[i];
+ВАЖЛИВО: відповідь має бути готовою відповіддю користувачу, без службових коментарів про обробку запиту.`;
+
+            for (let i = 0; i < keys.length; i++) {
+                const currentIdx = (keyRotationIndex[provider] + i) % keys.length;
+                const apiKey = keys[currentIdx];
+                if (!apiKey) continue;
+
                 try {
                     if (provider === 'gemini') {
-                        let apiModel = 'gemini-1.5-flash';
-                        if (model.includes('Lite') || model.includes('8b')) apiModel = 'gemini-1.5-flash-8b';
-                        else if (model.includes('Pro')) apiModel = 'gemini-1.5-pro';
-
-                        const url = `https://generativelanguage.googleapis.com/v1beta/models/${apiModel}:generateContent?key=${key}`;
+                        const model = selectedModelId || 'gemini-2.5-flash';
+                        const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
+                        const contents = conversation.map(m => ({
+                            role: m.role === 'assistant' ? 'model' : 'user',
+                            parts: [{ text: m.content }]
+                        }));
                         const res = await fetch(url, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
-                                contents: [{ parts: [{ text: promptText }] }],
-                                systemInstruction: { parts: [{ text: systemPrompt }] }
+                                systemInstruction: { parts: [{ text: system }] },
+                                contents,
+                                generationConfig: {
+                                    temperature: 0.7,
+                                    topP: 0.95,
+                                    maxOutputTokens: 4096
+                                }
                             })
                         });
-
-                        if (!res.ok) throw new Error(`Status ${res.status}`);
                         const data = await res.json();
-                        return data.candidates[0].content.parts[0].text;
+                        if (!res.ok) throw new Error(data?.error?.message || `Gemini HTTP ${res.status}`);
+                        responseText = data?.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('').trim();
+                        if (responseText) {
+                            keyRotationIndex[provider] = (currentIdx + 1) % keys.length;
+                            break;
+                        }
+                        throw new Error('Gemini returned an empty response');
+                    }
 
-                    } else if (provider === 'chatgpt') {
-                        let apiModel = 'gpt-4o-mini';
-                        if (model.includes('4o') && !model.includes('mini')) apiModel = 'gpt-4o';
-                        else if (model.includes('o3')) apiModel = 'o3-mini';
-
+                    if (provider === 'chatgpt') {
                         const res = await fetch('https://api.openai.com/v1/chat/completions', {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${key}`
+                                'Authorization': `Bearer ${apiKey}`
                             },
                             body: JSON.stringify({
-                                model: apiModel,
+                                model: selectedModelId || 'gpt-4o-mini',
                                 messages: [
-                                    { role: 'system', content: systemPrompt },
-                                    { role: 'user', content: promptText }
-                                ]
+                                    { role: 'system', content: system },
+                                    ...conversation
+                                ],
+                                temperature: 0.7,
+                                max_tokens: 4096
                             })
                         });
-
-                        if (!res.ok) throw new Error(`Status ${res.status}`);
                         const data = await res.json();
-                        return data.choices[0].message.content;
-
-                    } else if (provider === 'claude') {
-                        // Claude simulation fallback if no external public key set
-                        return `Привіт, ${userName}! Claude модель наразі налаштовується в системі Roma APK.`;
+                        if (!res.ok) throw new Error(data?.error?.message || `OpenAI HTTP ${res.status}`);
+                        responseText = data?.choices?.[0]?.message?.content?.trim();
+                        if (responseText) {
+                            keyRotationIndex[provider] = (currentIdx + 1) % keys.length;
+                            break;
+                        }
+                        throw new Error('OpenAI returned an empty response');
                     }
-                } catch (err) {
-                    console.warn(`Key #${i+1} failed, trying next key...`);
-                    // Silently continue to next key in array
+
+                    if (provider === 'claude') {
+                        const res = await fetch('https://api.anthropic.com/v1/messages', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'x-api-key': apiKey,
+                                'anthropic-version': '2023-06-01',
+                                'anthropic-dangerous-direct-browser-access': 'true'
+                            },
+                            body: JSON.stringify({
+                                model: selectedModelId || 'claude-3-5-haiku-latest',
+                                system,
+                                messages: conversation,
+                                max_tokens: 4096,
+                                temperature: 0.7
+                            })
+                        });
+                        const data = await res.json();
+                        if (!res.ok) throw new Error(data?.error?.message || `Claude HTTP ${res.status}`);
+                        responseText = data?.content?.filter(x => x.type === 'text').map(x => x.text).join('').trim();
+                        if (responseText) {
+                            keyRotationIndex[provider] = (currentIdx + 1) % keys.length;
+                            break;
+                        }
+                        throw new Error('Claude returned an empty response');
+                    }
+                } catch (e) {
+                    lastError = e;
                 }
             }
 
-            return "Вибачте, ліміти запитів вичерпано. Спробуйте пізніше або придбайте платний план Roma APK Pro / Max.";
+            if (!responseText) {
+                responseText = generateFallbackAiText(promptText);
+            }
+
+            removeTypingIndicator(typingId);
+            chatObj.messages.push({ role: 'assistant', content: responseText });
+            renderAssistantMessageBubble(responseText);
+            saveData();
         }
 
-        // --- MODALS (SETTINGS & PLANS) ---
-        function openSettingsModal() {
-            document.getElementById('settingsModal').classList.remove('hidden');
-            document.getElementById('settingsModal').classList.add('flex');
+        function generateFallbackAiText(userPrompt) {
+            const lower = userPrompt.toLowerCase().trim();
+            if (/^(привіт|вітаю|доброго ранку|доброго дня|добрий вечір|хай|hello|hi)[!. ]*$/i.test(lower)) {
+                return 'Привіт! 👋 Чим можу допомогти?';
+            }
+            if (lower.includes('як справи') || lower.includes('як ти')) {
+                return 'Все добре 🙂 А в тебе як?';
+            }
+            if (lower.includes('хто ти') || lower.includes('що ти за ші') || lower.includes('що ти за ai')) {
+                return 'Я Roma APK — AI-помічник. Можу відповідати на запитання, допомагати з навчанням, кодом, текстами та різними повсякденними задачами.';
+            }
+            return 'Зараз не вдалося отримати відповідь від AI. Спробуй ще раз за кілька секунд.';
         }
+
+        function openSettingsModal() {
+            updateSettingsProviderButtons();
+            document.getElementById('settingsModal').classList.remove('hidden');
+        }
+
         function closeSettingsModal() {
             document.getElementById('settingsModal').classList.add('hidden');
-            document.getElementById('settingsModal').classList.remove('flex');
-            saveSettings();
         }
 
-        function openPlanModal() {
-            document.getElementById('planModal').classList.remove('hidden');
-            document.getElementById('planModal').classList.add('flex');
-            selectPlan('Pro');
-        }
-        function closePlanModal() {
-            document.getElementById('planModal').classList.add('hidden');
-            document.getElementById('planModal').classList.remove('flex');
-        }
-
-        function selectPlan(type) {
-            selectedPlanType = type;
-            const paymentSec = document.getElementById('paymentSection');
-            
-            document.getElementById('planCardFree').className = "border border-gray-700 rounded-xl p-4 cursor-pointer transition hover:border-gray-500 bg-[#131314]";
-            document.getElementById('planCardPro').className = "border border-gray-700 rounded-xl p-4 cursor-pointer transition hover:border-gray-500 bg-[#131314]";
-            document.getElementById('planCardMax').className = "border border-gray-700 rounded-xl p-4 cursor-pointer transition hover:border-gray-500 bg-[#131314]";
-
-            if (type === 'Free') {
-                document.getElementById('planCardFree').className = "border border-blue-500 rounded-xl p-4 cursor-pointer bg-blue-950/20";
-                paymentSec.classList.add('hidden');
-                appSettings.currentPlan = 'Free';
-                document.getElementById('currentPlanBadge').textContent = 'Free';
-                closePlanModal();
-            } else {
-                paymentSec.classList.remove('hidden');
-                if (type === 'Pro') {
-                    document.getElementById('planCardPro').className = "border border-purple-500 rounded-xl p-4 cursor-pointer bg-purple-950/20";
-                    document.getElementById('selectedPlanTitle').textContent = 'Roma APK Pro';
-                    document.getElementById('selectedPlanPrice').textContent = '20 грн';
+        function updateSettingsProviderButtons() {
+            ['gemini', 'chatgpt', 'claude'].forEach(p => {
+                const btn = document.getElementById('providerBtn' + (p === 'gemini' ? 'Gemini' : (p === 'chatgpt' ? 'ChatGPT' : 'Claude')));
+                if (p === activeProvider) {
+                    btn.className = "p-3.5 rounded-2xl border-2 border-blue-500 bg-blue-500/10 flex flex-col items-center gap-2 transition-all font-bold text-blue-500";
                 } else {
-                    document.getElementById('planCardMax').className = "border border-blue-500 rounded-xl p-4 cursor-pointer bg-blue-950/20";
-                    document.getElementById('selectedPlanTitle').textContent = 'Roma APK Max';
-                    document.getElementById('selectedPlanPrice').textContent = '50 грн';
+                    btn.className = "p-3.5 rounded-2xl border border-gray-300 dark:border-gray-700 bg-transparent flex flex-col items-center gap-2 transition-all text-gray-400 hover:border-gray-500";
                 }
-            }
+            });
         }
 
-        function checkPromo(val) {
-            const cardNum = document.getElementById('cardNumber');
-            const cardExp = document.getElementById('cardExp');
-            const cardCvc = document.getElementById('cardCvc');
+        function saveSettings() {
+            systemInstructions = document.getElementById('systemPrompt').value.trim();
+            saveData();
+            updateUI();
 
-            if (val.trim() === 'ROMA2012') {
-                cardNum.disabled = true;
-                cardExp.disabled = true;
-                cardCvc.disabled = true;
-                cardNum.value = '';
-                cardExp.value = '';
-                cardCvc.value = '';
-                document.getElementById('selectedPlanPrice').textContent = '0 грн (Знижка 100%)';
-            } else {
-                cardNum.disabled = false;
-                cardExp.disabled = false;
-                cardCvc.disabled = false;
-                document.getElementById('selectedPlanPrice').textContent = selectedPlanType === 'Pro' ? '20 грн' : '50 грн';
-            }
+            const btn = document.getElementById('saveSettingsBtn');
+            btn.innerText = "Збережено!";
+            btn.classList.replace('bg-blue-600', 'bg-green-600');
+            setTimeout(() => {
+                btn.innerText = "Зберегти налаштування";
+                btn.classList.replace('bg-green-600', 'bg-blue-600');
+                closeSettingsModal();
+            }, 600);
         }
 
-        function processPayment() {
-            const promo = document.getElementById('promoCode').value.trim();
-            const statusDiv = document.getElementById('paymentStatus');
-            statusDiv.classList.remove('hidden');
+        function openUpgradeModal() {
+            document.getElementById('upgradeModal').classList.remove('hidden');
+        }
 
+        function closeUpgradeModal() {
+            document.getElementById('upgradeModal').classList.add('hidden');
+        }
+
+        function openPaymentModal(planName, price) {
+            targetCheckoutPlan = planName;
+            targetCheckoutPrice = price;
+            isPromoApplied = false;
+
+            document.getElementById('paymentModalTitle').innerText = `Оплата ${planName}`;
+            document.getElementById('paymentPriceDisplay').innerText = `${price} грн`;
+            document.getElementById('promoBadge').classList.add('hidden');
+            document.getElementById('paymentErrorBanner').classList.add('hidden');
+            document.getElementById('promoInput').value = '';
+            
+            // Reset Card Fields
+            const cardContainer = document.getElementById('cardFieldsContainer');
+            cardContainer.classList.remove('opacity-40', 'pointer-events-none');
+            document.getElementById('cardNumber').disabled = false;
+            document.getElementById('cardExpiry').disabled = false;
+            document.getElementById('cardCvc').disabled = false;
+            
+            document.getElementById('cardNumber').value = '';
+            document.getElementById('cardExpiry').value = '';
+            document.getElementById('cardCvc').value = '';
+
+            document.getElementById('payBtnText').innerText = `Оплатити ${price} грн`;
+
+            closeUpgradeModal();
+            document.getElementById('paymentModal').classList.remove('hidden');
+        }
+
+        function closePaymentModal() {
+            document.getElementById('paymentModal').classList.add('hidden');
+        }
+
+        function applyPromoCode() {
+            const promo = document.getElementById('promoInput').value.trim().toUpperCase();
+            
             if (promo === 'ROMA2012') {
-                statusDiv.className = 'text-center text-xs mt-2 text-green-400 font-medium';
-                statusDiv.textContent = 'Промокод успішно застосовано! План активовано.';
-                appSettings.currentPlan = selectedPlanType;
-                document.getElementById('currentPlanBadge').textContent = selectedPlanType;
-                setTimeout(() => {
-                    closePlanModal();
-                    statusDiv.classList.add('hidden');
-                }, 1500);
+                isPromoApplied = true;
+                
+                // 100% Discount Applied
+                document.getElementById('paymentPriceDisplay').innerText = '0 грн';
+                document.getElementById('promoBadge').classList.remove('hidden');
+                document.getElementById('paymentErrorBanner').classList.add('hidden');
+
+                // Disable Card Fields
+                const cardContainer = document.getElementById('cardFieldsContainer');
+                cardContainer.classList.add('opacity-40', 'pointer-events-none');
+                document.getElementById('cardNumber').disabled = true;
+                document.getElementById('cardExpiry').disabled = true;
+                document.getElementById('cardCvc').disabled = true;
+
+                // Update Button
+                document.getElementById('payBtnText').innerText = 'Активувати безкоштовно';
+            } else {
+                alert('Невірний промокод! Використайте промокод ROMA2012');
+            }
+        }
+
+        function handlePaymentSubmit(e) {
+            e.preventDefault();
+            
+            const submitBtn = document.getElementById('paySubmitBtn');
+            const spinner = document.getElementById('payBtnSpinner');
+            const btnText = document.getElementById('payBtnText');
+            const errorBanner = document.getElementById('paymentErrorBanner');
+
+            errorBanner.classList.add('hidden');
+
+            if (isPromoApplied) {
+                // Instant activation with ROMA2012
+                currentUser.plan = targetCheckoutPlan.includes('Max') ? 'Max' : 'Pro';
+                saveData();
+                updateUI();
+                closePaymentModal();
+                alert(`Вітаємо! Ваш план успішно оновлено до ${currentUser.plan} за допомогою промокоду ROMA2012!`);
                 return;
             }
 
-            statusDiv.className = 'text-center text-xs mt-2 text-yellow-400 font-medium';
-            statusDiv.textContent = 'Відбувається платіж...';
+            // Normal Card Payment Attempt (Shows spinner 2.5s then payment error)
+            submitBtn.disabled = true;
+            spinner.classList.remove('hidden');
+            btnText.innerText = 'Відбувається платіж...';
 
             setTimeout(() => {
-                statusDiv.className = 'text-center text-xs mt-2 text-red-400 font-medium';
-                statusDiv.textContent = 'Номер карти або дані не вірні. Спробуйте пізніше.';
+                submitBtn.disabled = false;
+                spinner.classList.add('hidden');
+                btnText.innerText = `Оплатити ${targetCheckoutPrice} грн`;
+                
+                // Show Error Message
+                errorBanner.classList.remove('hidden');
             }, 2500);
+        }
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            sidebar.classList.toggle('-translate-x-full');
+            overlay.classList.toggle('hidden');
+        }
+
+        function escapeHtml(text) {
+            return (text || '').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
         }
     </script>
 </body>
