@@ -513,9 +513,9 @@
         // Models per provider
         const providerModels = {
             gemini: [
-                { id: 'gemini-2.5-flash-lite', name: 'Flash-Lite', desc: 'Найшвидші відповіді' },
-                { id: 'gemini-2.5-flash', name: 'Flash', desc: 'Баланс швидкості й розуму' },
-                { id: 'gemini-2.5-pro', name: 'Pro', desc: 'Складні завдання та аналітика' }
+                { id: 'gemini-3.8-flash', name: 'Gemini 3.8 Flash', desc: 'Швидкий і розумний агент' },
+                { id: 'gemini-3.7-flash', name: 'Gemini 3.7 Flash', desc: 'Сильний баланс швидкості й розуму' },
+                { id: 'gemini-3.1-pro', name: 'Gemini 3.1 Pro', desc: 'Складні завдання та глибокий аналіз' }
             ],
             chatgpt: [
                 { id: 'gpt-4o-mini', name: 'GPT-4o mini', desc: 'Компактна швидка модель' },
@@ -529,7 +529,7 @@
             ]
         };
 
-        let selectedModelId = 'gemini-2.5-flash-lite';
+        let selectedModelId = 'gemini-3.8-flash';
 
         // EMBEDDED INTERNAL API KEYS (HIDDEN FROM UI AS REQUESTED)
         const apiKeys = {
@@ -625,7 +625,7 @@
             }
 
             // Set initial selected model ID
-            selectedModelId = providerModels[activeProvider][0].id;
+            if (!providerModels[activeProvider].some(m => m.id === selectedModelId)) selectedModelId = providerModels[activeProvider][0].id;
         }
 
         function saveData() {
@@ -643,9 +643,9 @@
                 const payload = JSON.parse(jsonPayload);
 
                 currentUser = {
-                    name: payload.name || 'Володимир',
+                    name: payload.name || 'Гість',
                     email: payload.email || 'user@gmail.com',
-                    picture: payload.picture || 'https://placehold.co/100x100/3b82f6/ffffff?text=V',
+                    picture: payload.picture || 'https://placehold.co/100x100/3b82f6/ffffff?text=G',
                     plan: currentUser.plan || 'Free'
                 };
                 saveData();
@@ -1040,22 +1040,26 @@
 
                 try {
                     if (provider === 'gemini') {
-                        const model = selectedModelId || 'gemini-2.5-flash';
-                        const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
+                        const model = selectedModelId || 'gemini-3.8-flash';
+                        const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
                         const contents = conversation.map(m => ({
                             role: m.role === 'assistant' ? 'model' : 'user',
                             parts: [{ text: m.content }]
                         }));
                         const res = await fetch(url, {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'x-goog-api-key': apiKey
+                            },
                             body: JSON.stringify({
                                 systemInstruction: { parts: [{ text: system }] },
                                 contents,
                                 generationConfig: {
                                     temperature: 0.7,
                                     topP: 0.95,
-                                    maxOutputTokens: 4096
+                                    maxOutputTokens: 8192,
+                                    thinkingConfig: { thinkingLevel: 'medium' }
                                 }
                             })
                         });
@@ -1128,27 +1132,15 @@
             }
 
             if (!responseText) {
-                responseText = generateFallbackAiText(promptText);
+                console.error('AI request failed:', lastError);
+                const reason = lastError?.message ? escapeHtml(lastError.message) : 'Невідома помилка API';
+                responseText = `Не вдалося отримати відповідь від ${provider.toUpperCase()}.<br><br><small class="text-gray-500">${reason}</small>`;
             }
 
             removeTypingIndicator(typingId);
             chatObj.messages.push({ role: 'assistant', content: responseText });
             renderAssistantMessageBubble(responseText);
             saveData();
-        }
-
-        function generateFallbackAiText(userPrompt) {
-            const lower = userPrompt.toLowerCase().trim();
-            if (/^(привіт|вітаю|доброго ранку|доброго дня|добрий вечір|хай|hello|hi)[!. ]*$/i.test(lower)) {
-                return 'Привіт! 👋 Чим можу допомогти?';
-            }
-            if (lower.includes('як справи') || lower.includes('як ти')) {
-                return 'Все добре 🙂 А в тебе як?';
-            }
-            if (lower.includes('хто ти') || lower.includes('що ти за ші') || lower.includes('що ти за ai')) {
-                return 'Я Roma APK — AI-помічник. Можу відповідати на запитання, допомагати з навчанням, кодом, текстами та різними повсякденними задачами.';
-            }
-            return 'Зараз не вдалося отримати відповідь від AI. Спробуй ще раз за кілька секунд.';
         }
 
         function openSettingsModal() {
@@ -1245,9 +1237,9 @@
                 document.getElementById('cardCvc').disabled = true;
 
                 // Update Button
-                document.getElementById('payBtnText').innerText = 'Активувати безкоштовно';
+                document.getElementById('payBtnText').innerText = 'Активувати';
             } else {
-                alert('Невірний промокод! Використайте промокод ROMA2012');
+                alert('Невірний промокод!');
             }
         }
 
