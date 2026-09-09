@@ -120,6 +120,33 @@
         @keyframes orbFloat { 0%,100%{transform:translateY(0) rotate(0)} 50%{transform:translateY(-8px) rotate(3deg)} }
         @media (prefers-reduced-motion: reduce) { *,*::before,*::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; } }
     </style>
+
+<style id="roma-mobile-optimization">
+  html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+  body { overscroll-behavior-y: none; -webkit-tap-highlight-color: transparent; }
+  button, input, textarea { font: inherit; }
+  button, label, [role="button"] { touch-action: manipulation; }
+  @supports (-webkit-touch-callout: none) {
+    input, textarea { font-size: 16px; }
+    .min-h-screen { min-height: 100svh; }
+  }
+  #romaBootScreen { position: fixed; inset: 0; z-index: 99999; display:flex; align-items:center; justify-content:center; overflow:hidden; background:radial-gradient(circle at 50% 35%, rgba(59,130,246,.18), transparent 38%), #070b14; color:white; transition:opacity .55s ease, visibility .55s ease; }
+  #romaBootScreen.is-hidden { opacity:0; visibility:hidden; pointer-events:none; }
+  .roma-boot-orb { position:absolute; width:420px; height:420px; border-radius:50%; background:conic-gradient(from 0deg, rgba(59,130,246,.0), rgba(59,130,246,.38), rgba(99,102,241,.05), rgba(59,130,246,0)); filter:blur(12px); animation:romaSpin 4s linear infinite; }
+  .roma-boot-ring { position:absolute; width:150px; height:150px; border:1px solid rgba(96,165,250,.25); border-top-color:#60a5fa; border-radius:50%; animation:romaSpin 1.5s linear infinite; }
+  .roma-boot-core { position:relative; width:82px; height:82px; border-radius:24px; display:flex; align-items:center; justify-content:center; background:linear-gradient(145deg,#2563eb,#4f46e5); box-shadow:0 0 60px rgba(59,130,246,.35), inset 0 1px rgba(255,255,255,.25); animation:romaPulse 1.8s ease-in-out infinite; }
+  .roma-boot-core span { font-size:38px; font-weight:900; letter-spacing:-3px; }
+  .roma-boot-content { position:relative; z-index:2; text-align:center; padding:24px; }
+  .roma-boot-title { margin-top:34px; font-size:28px; font-weight:800; letter-spacing:-.04em; }
+  .roma-boot-subtitle { margin-top:8px; color:#94a3b8; font-size:13px; }
+  .roma-boot-dots { display:flex; justify-content:center; gap:6px; margin-top:20px; }
+  .roma-boot-dots i { width:6px; height:6px; border-radius:50%; background:#60a5fa; animation:romaDot 1.1s infinite ease-in-out; }
+  .roma-boot-dots i:nth-child(2){animation-delay:.15s}.roma-boot-dots i:nth-child(3){animation-delay:.3s}
+  @keyframes romaSpin { to { transform:rotate(360deg); } }
+  @keyframes romaPulse { 50% { transform:scale(1.06); box-shadow:0 0 85px rgba(59,130,246,.48), inset 0 1px rgba(255,255,255,.3); } }
+  @keyframes romaDot { 0%,100%{transform:translateY(0);opacity:.35}50%{transform:translateY(-5px);opacity:1} }
+  @media (prefers-reduced-motion: reduce) { #romaBootScreen * { animation:none !important; } #romaBootScreen { transition:none; } }
+</style>
 </head>
 <body class="bg-bgLight text-gray-800 dark:bg-bgDark dark:text-gray-100 transition-colors duration-300 overflow-hidden h-screen flex">
 
@@ -270,6 +297,7 @@
                         <button id="modelSelectBtn" onclick="toggleModelDropdown()" class="flex items-center gap-2 px-3.5 py-1.5 bg-gray-100 dark:bg-bgDarkSec hover:bg-gray-200 dark:hover:bg-bgDarkCard border border-gray-300 dark:border-gray-700 rounded-xl text-xs font-semibold transition-all shadow-sm text-gray-800 dark:text-gray-200">
                             <span id="currentProviderDot" class="w-2 h-2 rounded-full bg-blue-500"></span>
                             <span id="currentModelDisplay">Flash-Lite</span>
+                    <span id="activeChatMeta" class="text-[9px] text-gray-400 hidden sm:inline-block truncate max-w-[210px]"></span>
                             <span class="material-symbols-outlined text-xs text-gray-400">expand_more</span>
                         </button>
 
@@ -285,7 +313,7 @@
                         </div>
                     </div>
 
-                    <span class="text-[11px] text-gray-400">Авто-ротація ключів активна</span>
+                    <span class="text-[11px] text-gray-400">Roma APK перебуває в Бета Тестуванні</span>
                 </div>
 
                 <!-- Main Input Box -->
@@ -309,7 +337,7 @@
                 </div>
 
                 <div class="text-center mt-2">
-                    <span class="text-[10px] text-gray-400">Roma APK створює чисті відповіді на основі штучного інтелекту.</span>
+                    <span class="text-[10px] text-gray-400">Roma APK може помилятися. Перевіряйте важливу інформацію.</span>
                 </div>
             </div>
         </div>
@@ -464,7 +492,7 @@
                 <div>
                     <label class="block text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-1">Промокод</label>
                     <div class="flex gap-2">
-                        <input type="text" id="promoInput" class="flex-1 px-3.5 py-2.5 rounded-xl bg-gray-50 dark:bg-bgDarkCard border border-gray-300 dark:border-gray-700 text-xs font-mono uppercase focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="Введіть ROMA2012">
+                        <input type="text" id="promoInput" class="flex-1 px-3.5 py-2.5 rounded-xl bg-gray-50 dark:bg-bgDarkCard border border-gray-300 dark:border-gray-700 text-xs font-mono uppercase focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="Введіть промокод">
                         <button type="button" onclick="applyPromoCode()" class="px-4 py-2.5 bg-gray-200 dark:bg-bgDarkHover hover:bg-gray-300 dark:hover:bg-gray-700 text-xs font-semibold rounded-xl transition-all">
                             Застосувати
                         </button>
@@ -585,6 +613,8 @@
             updateUI();
             renderModelDropdownOptions();
             renderHistoryList();
+            requestPersistentStorage();
+            setTimeout(() => document.getElementById('romaBootScreen')?.classList.add('is-hidden'), 850);
             
             // Format card number input
             const cardNum = document.getElementById('cardNumber');
@@ -609,36 +639,100 @@
             }
         });
 
+        // Надійне сховище для GitHub Pages / iPhone Safari / Android Chrome.
+        // Safari Private Mode може блокувати localStorage, тому всі операції захищені try/catch.
+        const ROMA_MEMORY_FALLBACK = {};
+        let romaStorageAvailable = false;
+
+        function detectStorage() {
+            try {
+                const testKey = '__roma_storage_test__';
+                window.localStorage.setItem(testKey, '1');
+                window.localStorage.removeItem(testKey);
+                romaStorageAvailable = true;
+            } catch (e) {
+                romaStorageAvailable = false;
+            }
+        }
+
+        function storageGet(key) {
+            try {
+                if (romaStorageAvailable) return window.localStorage.getItem(key);
+            } catch (e) {}
+            return Object.prototype.hasOwnProperty.call(ROMA_MEMORY_FALLBACK, key) ? ROMA_MEMORY_FALLBACK[key] : null;
+        }
+
+        function storageSet(key, value) {
+            try {
+                if (romaStorageAvailable) {
+                    window.localStorage.setItem(key, value);
+                    return true;
+                }
+            } catch (e) {
+                romaStorageAvailable = false;
+            }
+            ROMA_MEMORY_FALLBACK[key] = value;
+            return false;
+        }
+
+        function safeJsonParse(value, fallback) {
+            try { return value ? JSON.parse(value) : fallback; } catch (e) { return fallback; }
+        }
+
+        function normalizeChat(chat) {
+            if (!chat || !chat.id) return null;
+            const provider = providerModels[chat.provider] ? chat.provider : 'gemini';
+            const model = chat.model || providerModels[provider][0]?.id || '';
+            return {
+                id: chat.id,
+                title: chat.title || 'Новий чат',
+                createdAt: chat.createdAt || new Date().toISOString(),
+                provider,
+                model,
+                messages: Array.isArray(chat.messages) ? chat.messages : []
+            };
+        }
+
         // Load data from LocalStorage
         function loadSavedData() {
-            const savedUser = localStorage.getItem('roma_user');
-            if (savedUser) {
-                currentUser = JSON.parse(savedUser);
+            detectStorage();
+
+            const savedUser = safeJsonParse(storageGet('roma_user'), null);
+            if (savedUser && typeof savedUser === 'object') {
+                currentUser = { ...currentUser, ...savedUser };
                 document.getElementById('authModal').classList.add('hidden');
             }
 
-            const savedProvider = localStorage.getItem('roma_provider');
-            if (savedProvider && providerModels[savedProvider]) {
-                activeProvider = savedProvider;
-            }
+            const savedProvider = storageGet('roma_provider');
+            if (savedProvider && providerModels[savedProvider]) activeProvider = savedProvider;
 
-            const savedInstructions = localStorage.getItem('roma_instructions');
+            const savedInstructions = storageGet('roma_instructions');
             if (savedInstructions) systemInstructions = savedInstructions;
 
-            const savedChats = localStorage.getItem('roma_chats');
-            if (savedChats) {
-                chats = JSON.parse(savedChats);
-            }
+            const savedChats = safeJsonParse(storageGet('roma_chats'), []);
+            if (Array.isArray(savedChats)) chats = savedChats.map(normalizeChat).filter(Boolean);
 
-            // Set initial selected model ID
-            if (!providerModels[activeProvider].some(m => m.id === selectedModelId)) selectedModelId = providerModels[activeProvider][0].id;
+            if (!providerModels[activeProvider].some(m => m.id === selectedModelId)) {
+                selectedModelId = providerModels[activeProvider][0].id;
+            }
         }
 
         function saveData() {
-            localStorage.setItem('roma_user', JSON.stringify(currentUser));
-            localStorage.setItem('roma_provider', activeProvider);
-            localStorage.setItem('roma_instructions', systemInstructions);
-            localStorage.setItem('roma_chats', JSON.stringify(chats));
+            storageSet('roma_user', JSON.stringify(currentUser));
+            storageSet('roma_provider', activeProvider);
+            storageSet('roma_instructions', systemInstructions);
+            try {
+                storageSet('roma_chats', JSON.stringify(chats));
+            } catch (e) {
+                // Якщо сховище переповнилось, зберігаємо хоча б останні 30 чатів.
+                try { storageSet('roma_chats', JSON.stringify(chats.slice(0, 30))); } catch (_) {}
+            }
+        }
+
+        async function requestPersistentStorage() {
+            try {
+                if (navigator.storage?.persist) await navigator.storage.persist();
+            } catch (e) {}
         }
 
         function handleGoogleSignIn(response) {
@@ -698,17 +792,27 @@
 
             const currentModelObj = providerModels[activeProvider].find(m => m.id === selectedModelId) || providerModels[activeProvider][0];
             document.getElementById('currentModelDisplay').innerText = currentModelObj.name;
+            const activeChat = chats.find(c => c.id === activeChatId);
+            const chatMeta = document.getElementById('activeChatMeta');
+            if (chatMeta) {
+                const names = { gemini: 'Gemini', chatgpt: 'ChatGPT', claude: 'Claude' };
+                chatMeta.innerText = activeChat ? `${names[activeChat.provider] || activeChat.provider} · ${formatChatDate(activeChat.createdAt)}` : `${names[activeProvider]} · Новий чат`;
+            }
             document.getElementById('systemPrompt').value = systemInstructions;
         }
 
         function setProvider(provider) {
+            if (!providerModels[provider] || provider === activeProvider) return;
+
+            // Зміна ШІ завжди відкриває новий чат. Старий чат залишається в історії.
             activeProvider = provider;
             selectedModelId = providerModels[provider][0].id;
-            
+            startNewChat(true);
             saveData();
             updateUI();
             renderModelDropdownOptions();
             updateSettingsProviderButtons();
+            closeSettingsModal();
         }
 
         function renderModelDropdownOptions() {
@@ -743,9 +847,19 @@
 
         function selectModel(modelId) {
             selectedModelId = modelId;
+            saveData();
             updateUI();
             renderModelDropdownOptions();
             document.getElementById('modelDropdown').classList.add('hidden');
+        }
+
+        function formatChatDate(iso) {
+            try {
+                return new Intl.DateTimeFormat('uk-UA', {
+                    day: '2-digit', month: '2-digit', year: 'numeric',
+                    hour: '2-digit', minute: '2-digit'
+                }).format(new Date(iso));
+            } catch (e) { return ''; }
         }
 
         function renderHistoryList() {
@@ -767,12 +881,17 @@
                 div.className = `group px-3 py-2.5 rounded-xl cursor-pointer text-xs flex items-center justify-between transition-all ${isActive ? 'bg-blue-600/15 text-blue-500 font-semibold' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-bgDarkCard'}`;
                 div.onclick = () => switchChat(chat.id);
 
+                const providerNames = { gemini: 'Gemini', chatgpt: 'ChatGPT', claude: 'Claude' };
+                const dateText = formatChatDate(chat.createdAt);
                 div.innerHTML = `
-                    <div class="flex items-center gap-2.5 truncate flex-1 pr-1">
-                        <span class="material-symbols-outlined text-sm text-gray-400">chat_bubble_outline</span>
-                        <span class="truncate">${escapeHtml(chat.title)}</span>
+                    <div class="flex items-center gap-2.5 truncate flex-1 pr-1 min-w-0">
+                        <span class="material-symbols-outlined text-sm text-gray-400 shrink-0">chat_bubble_outline</span>
+                        <div class="truncate min-w-0">
+                            <div class="truncate">${escapeHtml(chat.title)}</div>
+                            <div class="text-[9px] font-normal text-gray-400 truncate">${escapeHtml(providerNames[chat.provider] || chat.provider || 'AI')} · ${escapeHtml(dateText)}</div>
+                        </div>
                     </div>
-                    <button onclick="deleteChat(event, '${chat.id}')" class="opacity-0 group-hover:opacity-100 p-1 hover:text-red-400 transition-opacity">
+                    <button onclick="deleteChat(event, '${chat.id}')" class="opacity-0 group-hover:opacity-100 p-1 hover:text-red-400 transition-opacity shrink-0">
                         <span class="material-symbols-outlined text-sm">delete</span>
                     </button>
                 `;
@@ -780,12 +899,12 @@
             });
         }
 
-        function startNewChat() {
+        function startNewChat(silentMobileToggle = false) {
             activeChatId = null;
             document.getElementById('messagesContainer').innerHTML = '';
             document.getElementById('emptyState').classList.remove('hidden');
             renderHistoryList();
-            if (window.innerWidth < 768) {
+            if (!silentMobileToggle && window.innerWidth < 768) {
                 toggleSidebar();
             }
         }
@@ -924,11 +1043,16 @@
                     id: newChatId,
                     title: chatTitle,
                     createdAt: new Date().toISOString(),
+                    provider: activeProvider,
+                    model: selectedModelId,
                     messages: []
                 });
             }
 
             const currentChat = chats.find(c => c.id === activeChatId);
+            if (!currentChat) return;
+            currentChat.provider = currentChat.provider || activeProvider;
+            currentChat.model = currentChat.model || selectedModelId;
             currentChat.messages.push({ role: 'user', content: text, files: currentFiles });
 
             renderUserMessageBubble(text, currentFiles);
@@ -1247,7 +1371,7 @@
                 // Update Button
                 document.getElementById('payBtnText').innerText = 'Активувати безкоштовно';
             } else {
-                alert('Невірний промокод! Використайте промокод ROMA2012');
+                alert('Невірний промокод.');
             }
         }
 
@@ -1267,7 +1391,7 @@
                 saveData();
                 updateUI();
                 closePaymentModal();
-                alert(`Вітаємо! Ваш план успішно оновлено до ${currentUser.plan} за допомогою промокоду ROMA2012!`);
+                alert(`Вітаємо! Ваш план успішно оновлено до ${currentUser.plan}!`);
                 return;
             }
 
