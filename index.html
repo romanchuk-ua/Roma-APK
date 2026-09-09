@@ -119,6 +119,34 @@
         .welcome-orb { animation: orbFloat 5s ease-in-out infinite; }
         @keyframes orbFloat { 0%,100%{transform:translateY(0) rotate(0)} 50%{transform:translateY(-8px) rotate(3deg)} }
         @media (prefers-reduced-motion: reduce) { *,*::before,*::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; } }
+
+        /* Full-screen startup animation */
+        #romaBootScreen { isolation:isolate; }
+        #romaBootScreen::before, #romaBootScreen::after { content:""; position:absolute; width:65vw; height:65vw; max-width:720px; max-height:720px; border-radius:50%; filter:blur(80px); opacity:.28; pointer-events:none; }
+        #romaBootScreen::before { background:#2563eb; left:-18%; top:-20%; animation:bootAuroraA 7s ease-in-out infinite alternate; }
+        #romaBootScreen::after { background:#8b5cf6; right:-20%; bottom:-25%; animation:bootAuroraB 8s ease-in-out infinite alternate; }
+        .roma-boot-grid { position:absolute; inset:0; opacity:.16; background-image:linear-gradient(rgba(255,255,255,.06) 1px, transparent 1px),linear-gradient(90deg,rgba(255,255,255,.06) 1px,transparent 1px); background-size:42px 42px; mask-image:radial-gradient(circle at center, black, transparent 75%); animation:gridDrift 12s linear infinite; }
+        .roma-boot-logo { width:96px; height:96px; border-radius:30px; display:flex; align-items:center; justify-content:center; position:relative; background:linear-gradient(135deg,#2563eb 0%,#4f46e5 48%,#9333ea 100%); box-shadow:0 0 0 1px rgba(255,255,255,.15) inset,0 18px 70px rgba(37,99,235,.35); animation:bootLogo 2.2s cubic-bezier(.2,.8,.2,1) both,bootFloat 3.6s ease-in-out 2.2s infinite; }
+        .roma-boot-logo::before { content:""; position:absolute; inset:-13px; border-radius:36px; border:1px solid rgba(147,197,253,.22); animation:bootRing 2.4s ease-out infinite; }
+        .roma-boot-logo::after { content:""; position:absolute; inset:-34px; border-radius:50%; background:radial-gradient(circle,rgba(59,130,246,.22),transparent 65%); filter:blur(10px); z-index:-1; animation:bootGlow 2.4s ease-in-out infinite; }
+        .roma-boot-letter { font-size:42px; font-weight:900; letter-spacing:-.08em; color:#fff; transform:translateX(-2px); }
+        .roma-boot-title { animation:bootText .9s .35s both; }
+        .roma-boot-subtitle { animation:bootText .9s .55s both; }
+        .roma-boot-status { margin-top:25px; display:inline-flex; align-items:center; gap:8px; padding:8px 13px; border:1px solid rgba(148,163,184,.18); background:rgba(15,23,42,.42); border-radius:999px; color:#a5b4fc; font-size:11px; animation:bootText .9s .72s both; backdrop-filter:blur(12px); }
+        .roma-boot-status-dot { width:7px; height:7px; border-radius:50%; background:#60a5fa; box-shadow:0 0 14px #60a5fa; animation:bootStatus 1.2s ease-in-out infinite; }
+        .roma-boot-progress { width:min(220px,60vw); height:2px; margin:18px auto 0; background:rgba(255,255,255,.08); border-radius:99px; overflow:hidden; animation:bootText .9s .82s both; }
+        .roma-boot-progress span { display:block; width:45%; height:100%; border-radius:99px; background:linear-gradient(90deg,#60a5fa,#a78bfa,#c084fc); box-shadow:0 0 16px rgba(96,165,250,.65); animation:bootProgress 1.5s ease-in-out infinite; }
+        @keyframes bootAuroraA { to { transform:translate(22vw,14vh) scale(1.15); } }
+        @keyframes bootAuroraB { to { transform:translate(-18vw,-12vh) scale(1.2); } }
+        @keyframes gridDrift { to { transform:translate3d(42px,42px,0); } }
+        @keyframes bootLogo { from { opacity:0; transform:scale(.55) rotate(-12deg); filter:blur(10px); } 60% { opacity:1; transform:scale(1.08) rotate(2deg); filter:blur(0); } to { transform:scale(1) rotate(0); } }
+        @keyframes bootRing { 0% { transform:scale(.82); opacity:.8; } 100% { transform:scale(1.22); opacity:0; } }
+        @keyframes bootGlow { 0%,100% { transform:scale(.85); opacity:.5; } 50% { transform:scale(1.1); opacity:1; } }
+        @keyframes bootFloat { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-8px); } }
+        @keyframes bootText { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes bootStatus { 0%,100% { opacity:.35; transform:scale(.85); } 50% { opacity:1; transform:scale(1.1); } }
+        @keyframes bootProgress { 0% { transform:translateX(-120%); } 100% { transform:translateX(340%); } }
+        @media (max-width:767px) { .roma-boot-logo{width:84px;height:84px;border-radius:27px}.roma-boot-letter{font-size:36px}.roma-boot-title{font-size:25px}.roma-boot-subtitle{font-size:12px}.roma-boot-grid{background-size:30px 30px} }
     </style>
 
 <style id="roma-mobile-optimization">
@@ -149,6 +177,20 @@
 </style>
 </head>
 <body class="bg-bgLight text-gray-800 dark:bg-bgDark dark:text-gray-100 transition-colors duration-300 overflow-hidden h-screen flex">
+
+    <!-- Animated startup screen -->
+    <div id="romaBootScreen" aria-hidden="true">
+        <div class="roma-boot-grid"></div>
+        <div class="roma-boot-orb"></div>
+        <div class="roma-boot-ring"></div>
+        <div class="roma-boot-content">
+            <div class="roma-boot-logo"><span class="roma-boot-letter">AI</span></div>
+            <div class="roma-boot-title">AI Assistant</div>
+            <div class="roma-boot-subtitle">Готуємо ваш персональний простір</div>
+            <div class="roma-boot-status"><span class="roma-boot-status-dot"></span><span>Підключення до AI-систем</span></div>
+            <div class="roma-boot-progress"><span></span></div>
+        </div>
+    </div>
 
     <!-- Auth / Google Login Modal -->
     <div id="authModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md modal-enter">
@@ -225,10 +267,10 @@
             
             <div class="flex items-center justify-between p-2 rounded-2xl bg-gray-100 dark:bg-bgDarkCard border border-gray-200 dark:border-gray-800">
                 <div class="flex items-center gap-3 overflow-hidden">
-                    <img id="userAvatar" class="w-9 h-9 rounded-full object-cover border border-gray-300 dark:border-gray-700 shrink-0" src="https://placehold.co/100x100/3b82f6/ffffff?text=V" alt="Avatar">
+                    <img id="userAvatar" class="w-9 h-9 rounded-full object-cover border border-gray-300 dark:border-gray-700 shrink-0" src="https://placehold.co/100x100/3b82f6/ffffff?text=G" alt="Avatar">
                     <div class="truncate">
-                        <p class="text-xs font-semibold text-gray-900 dark:text-white truncate" id="userNameDisplay">Володимир</p>
-                        <p class="text-[10px] text-gray-400 truncate" id="userEmailDisplay">vova@gmail.com</p>
+                        <p class="text-xs font-semibold text-gray-900 dark:text-white truncate" id="userNameDisplay">Гість</p>
+                        <p class="text-[10px] text-gray-400 truncate" id="userEmailDisplay">guest@local.ai</p>
                     </div>
                 </div>
                 <button onclick="openSettingsModal()" class="p-2 text-gray-400 hover:text-white rounded-xl hover:bg-gray-200 dark:hover:bg-bgDarkHover transition-colors shrink-0" title="Налаштування">
@@ -326,7 +368,7 @@
                     </label>
 
                     <!-- Text Input -->
-                    <textarea id="userInput" rows="1" class="flex-1 bg-transparent border-none focus:outline-none focus:ring-0 resize-none py-2.5 px-2 max-h-36 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" placeholder="Запитайте Roma APK..." oninput="autoResize(this)" onkeydown="handleEnter(event)"></textarea>
+                    <textarea id="userInput" rows="1" class="flex-1 bg-transparent border-none focus:outline-none focus:ring-0 resize-none py-2.5 px-2 max-h-36 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" placeholder="Напишіть повідомлення..." oninput="autoResize(this)" onkeydown="handleEnter(event)"></textarea>
 
                     <div class="flex items-center gap-1 p-1">
                         <!-- Send Button -->
@@ -360,7 +402,7 @@
                 <!-- Select Main Provider -->
                 <div>
                     <label class="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-3">Основний ШІ Провайдер</label>
-                    <div class="grid grid-cols-3 gap-3">
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
                         <button type="button" onclick="setProvider('gemini')" id="providerBtnGemini" class="p-3.5 rounded-2xl border flex flex-col items-center gap-2 transition-all">
                             <span class="material-symbols-outlined text-blue-500 text-2xl">sparkles</span>
                             <span class="font-semibold text-xs">Google Gemini</span>
@@ -369,9 +411,17 @@
                             <span class="material-symbols-outlined text-green-500 text-2xl">smart_toy</span>
                             <span class="font-semibold text-xs">OpenAI ChatGPT</span>
                         </button>
-                        <button type="button" onclick="setProvider('claude')" id="providerBtnClaude" class="p-3.5 rounded-2xl border flex flex-col items-center gap-2 transition-all">
-                            <span class="material-symbols-outlined text-orange-500 text-2xl">psychology</span>
-                            <span class="font-semibold text-xs">Anthropic Claude</span>
+                        <button type="button" onclick="setProvider('groq')" id="providerBtnGroq" class="p-3.5 rounded-2xl border flex flex-col items-center gap-2 transition-all">
+                            <span class="material-symbols-outlined text-orange-400 text-2xl">bolt</span>
+                            <span class="font-semibold text-xs">Groq Cloud</span>
+                        </button>
+                        <button type="button" onclick="setProvider('openrouter')" id="providerBtnOpenRouter" class="p-3.5 rounded-2xl border flex flex-col items-center gap-2 transition-all">
+                            <span class="material-symbols-outlined text-violet-400 text-2xl">hub</span>
+                            <span class="font-semibold text-xs">OpenRouter</span>
+                        </button>
+                        <button type="button" onclick="setProvider('mistral')" id="providerBtnMistral" class="p-3.5 rounded-2xl border flex flex-col items-center gap-2 transition-all">
+                            <span class="material-symbols-outlined text-amber-400 text-2xl">auto_awesome</span>
+                            <span class="font-semibold text-xs">Mistral AI</span>
                         </button>
                     </div>
                 </div>
@@ -379,7 +429,7 @@
                 <!-- Custom Instructions / System Prompt -->
                 <div>
                     <label class="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1">Персональні інструкції для ШІ (Пам'ять)</label>
-                    <p class="text-xs text-gray-500 mb-2">Наприклад: "Звертайся до мене Володимир, надавай відповіді українською, пиши чистий код."</p>
+                    <p class="text-xs text-gray-500 mb-2">Тут ви можете написати, як саме ШІ має відповідати: мова, стиль, формат, рівень деталізації та інші ваші побажання.</p>
                     <textarea id="systemPrompt" rows="3" class="w-full px-3.5 py-2.5 rounded-2xl bg-gray-50 dark:bg-bgDarkCard border border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none text-xs text-gray-900 dark:text-white" placeholder="Введіть ваші інструкції..."></textarea>
                 </div>
 
@@ -531,35 +581,44 @@
         // User Profile & App State
         let currentUser = {
             name: 'Гість',
-            email: 'guest@roma.local',
+            email: 'guest@local.ai',
             picture: 'https://placehold.co/100x100/3b82f6/ffffff?text=G',
             plan: 'Free'
         };
 
-        let activeProvider = 'gemini'; // 'gemini' | 'chatgpt' | 'claude'
-        
-        // Models per provider
+        let activeProvider = 'gemini';
+
+        // Моделі кожного підключеного AI-провайдера.
         const providerModels = {
             gemini: [
                 { id: 'gemini-3.8-flash', name: 'Gemini 3.8 Flash', desc: 'Швидкий і розумний агент' },
-                { id: 'gemini-3.7-flash', name: 'Gemini 3.7 Flash', desc: 'Сильний баланс швидкості й розуму' },
-                { id: 'gemini-3.1-pro', name: 'Gemini 3.1 Pro', desc: 'Складні завдання та глибокий аналіз' }
+                { id: 'gemini-3.7-flash', name: 'Gemini 3.7 Flash', desc: 'Баланс швидкості та якості' },
+                { id: 'gemini-3.1-pro', name: 'Gemini 3.1 Pro', desc: 'Складні завдання та аналіз' }
             ],
             chatgpt: [
                 { id: 'gpt-5.6', name: 'GPT-5.6', desc: 'Потужна модель OpenAI' },
                 { id: 'gpt-5.6-mini', name: 'GPT-5.6 Mini', desc: 'Швидка модель OpenAI' },
-                { id: 'gpt-4o-mini', name: 'GPT-4o mini', desc: 'Сумісний швидкий варіант' }
+                { id: 'gpt-4o-mini', name: 'GPT-4o mini', desc: 'Швидкий сумісний варіант' }
             ],
-            claude: [
-                { id: 'claude-sonnet-4-20250514', name: 'Claude Sonnet 4', desc: 'Баланс швидкості та якості' },
-                { id: 'claude-opus-4-20250514', name: 'Claude Opus 4', desc: 'Глибокий аналіз' },
-                { id: 'claude-3-5-haiku', name: 'Claude 3.5 Haiku', desc: 'Швидкий варіант' }
+            groq: [
+                { id: 'llama-3.3-70b-versatile', name: 'Llama 3.3 70B', desc: 'Швидка модель Groq' },
+                { id: 'openai/gpt-oss-20b', name: 'GPT-OSS 20B', desc: 'Швидке reasoning через Groq' },
+                { id: 'openai/gpt-oss-120b', name: 'GPT-OSS 120B', desc: 'Потужніші складні відповіді' }
+            ],
+            openrouter: [
+                { id: 'openrouter/free', name: 'Free Router', desc: 'Автоматичний вибір безкоштовної моделі' },
+                { id: 'google/gemma-4-26b-a4b-it:free', name: 'Gemma 4 26B', desc: 'Безкоштовна модель Google' },
+                { id: 'nvidia/nemotron-3-super:free', name: 'Nemotron 3 Super', desc: 'Сильна reasoning-модель' }
+            ],
+            mistral: [
+                { id: 'mistral-large-latest', name: 'Mistral Large', desc: 'Потужна універсальна модель' },
+                { id: 'mistral-medium-latest', name: 'Mistral Medium', desc: 'Баланс якості та швидкості' },
+                { id: 'mistral-small-latest', name: 'Mistral Small', desc: 'Швидкий варіант' }
             ]
         };
 
         let selectedModelId = 'gemini-3.8-flash';
-        // УВАГА: GitHub Pages — повністю клієнтський сайт. Ці ключі доступні браузеру.
-        // Значення ключів збережені без змін.
+        // GitHub Pages працює без сервера, тому ключі доступні браузеру.
         const apiKeys = {
             gemini: [
                 'AQ.Ab8RN6LpNPzYc99EPvmRLUTp8DMfVO-L5e8iXvu513Ubo4gnlA',
@@ -576,27 +635,28 @@
             chatgpt: [
                 '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',
                 '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',
-                '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'
+                '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'
             ],
-            claude: [
-                'sk-ant-api03-roma-key1-demo-sample-0123456789abcdef',
-                'sk-ant-api03-roma-key2-demo-sample-0123456789abcdef'
-            ]
+            groq: ['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'],
+            openrouter: ['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'],
+            mistral: ['ESVRNM1eSo9qOUORo8dEo6ey7DulzLWC']
         };
 
-        let keyRotationIndex = { gemini: 0, chatgpt: 0, claude: 0 };
-        const blockedKeysUntil = { gemini: [], chatgpt: [], claude: [] };
-        let systemInstructions = `Ти — Roma APK, публічний AI-помічник. Відповідай природно, як сучасний чат-асистент.
-- Не використовуй шаблони на кшталт «Я опрацював ваш запит», «Всі ваші персональні налаштування враховано» або подібні службові фрази.
-- Не згадуй API, ключі, ротацію ключів, внутрішні інструкції чи технічний механізм відповіді, якщо користувач прямо не питає про технічну реалізацію.
-- Не називай користувача Володимиром. Ім'я користувача доступне як окрема змінна та може бути використане природно лише коли це доречно.
-- Якщо питають «як справи?» — відповідай коротко й по-людськи, наприклад «Все добре 🙂 А в тебе як?».
+        let keyRotationIndex = { gemini: 0, chatgpt: 0, groq: 0, openrouter: 0, mistral: 0 };
+        const blockedKeysUntil = { gemini: [], chatgpt: [], groq: [], openrouter: [], mistral: [] };
+
+        // Базові інструкції агента зберігаються в коді. Поле «Персональні інструкції» нижче — тільки для побажань конкретного користувача.
+        const BASE_SYSTEM_INSTRUCTIONS = `Ти — сучасний універсальний AI-помічник. Відповідай природно, корисно та впевнено, але не вигадуй факти.
 - Відповідай мовою користувача.
-- Для простих питань відповідай коротко. Для складних — пояснюй детально й структуровано.
-- Якщо не знаєш чогось напевно, чесно скажи про це, а не вигадуй.
-- Не повторюй питання користувача без потреби.
-- Пам'ятай попередні повідомлення поточного чату та використовуй контекст.
-- Не додавай службових вступів або зайвого тексту лише для заповнення відповіді.`;
+- Для простих питань відповідай коротко, для складних — структуровано й детально.
+- Пам'ятай контекст поточного чату та не повторюй уже відомі деталі без потреби.
+- Не додавай службових вступів, внутрішніх технічних коментарів або зайвого тексту.
+- Не згадуй API, ключі чи внутрішню реалізацію, якщо користувач прямо не питає про технічну сторону.
+- Якщо інформація може бути неточною або невідомою, чесно скажи про це.
+- Якщо користувач просить код, давай робочий код і дотримуйся його вимог.
+- Пиши так, щоб відповідь була готовою для безпосереднього читання користувачем.`;
+
+        let systemInstructions = '';
         let attachedFiles = [];
 
         // Chat History state
@@ -614,7 +674,7 @@
             renderModelDropdownOptions();
             renderHistoryList();
             requestPersistentStorage();
-            setTimeout(() => document.getElementById('romaBootScreen')?.classList.add('is-hidden'), 850);
+            setTimeout(() => document.getElementById('romaBootScreen')?.classList.add('is-hidden'), 1850);
             
             // Format card number input
             const cardNum = document.getElementById('cardNumber');
@@ -744,7 +804,7 @@
 
                 currentUser = {
                     name: payload.name || 'Гість',
-                    email: payload.email || 'user@gmail.com',
+                    email: payload.email || 'user@local.ai',
                     picture: payload.picture || 'https://placehold.co/100x100/3b82f6/ffffff?text=G',
                     plan: currentUser.plan || 'Free'
                 };
@@ -759,7 +819,7 @@
         function demoLogin() {
             currentUser = {
                 name: 'Гість',
-                email: 'guest@roma.local',
+                email: 'guest@local.ai',
                 picture: 'https://placehold.co/100x100/3b82f6/ffffff?text=G',
                 plan: currentUser.plan || 'Free'
             };
@@ -795,7 +855,7 @@
             const activeChat = chats.find(c => c.id === activeChatId);
             const chatMeta = document.getElementById('activeChatMeta');
             if (chatMeta) {
-                const names = { gemini: 'Gemini', chatgpt: 'ChatGPT', claude: 'Claude' };
+                const names = { gemini: 'Gemini', chatgpt: 'ChatGPT', groq: 'Groq Cloud', openrouter: 'OpenRouter', mistral: 'Mistral AI' };
                 chatMeta.innerText = activeChat ? `${names[activeChat.provider] || activeChat.provider} · ${formatChatDate(activeChat.createdAt)}` : `${names[activeProvider]} · Новий чат`;
             }
             document.getElementById('systemPrompt').value = systemInstructions;
@@ -821,7 +881,7 @@
             list.innerHTML = '';
 
             const models = providerModels[activeProvider];
-            const providerNames = { gemini: 'Gemini', chatgpt: 'ChatGPT', claude: 'Claude' };
+            const providerNames = { gemini: 'Gemini', chatgpt: 'ChatGPT', groq: 'Groq Cloud', openrouter: 'OpenRouter', mistral: 'Mistral AI' };
             title.innerText = `Моделі ${providerNames[activeProvider]}`;
 
             models.forEach(m => {
@@ -881,7 +941,7 @@
                 div.className = `group px-3 py-2.5 rounded-xl cursor-pointer text-xs flex items-center justify-between transition-all ${isActive ? 'bg-blue-600/15 text-blue-500 font-semibold' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-bgDarkCard'}`;
                 div.onclick = () => switchChat(chat.id);
 
-                const providerNames = { gemini: 'Gemini', chatgpt: 'ChatGPT', claude: 'Claude' };
+                const providerNames = { gemini: 'Gemini', chatgpt: 'ChatGPT', groq: 'Groq Cloud', openrouter: 'OpenRouter', mistral: 'Mistral AI' };
                 const dateText = formatChatDate(chat.createdAt);
                 div.innerHTML = `
                     <div class="flex items-center gap-2.5 truncate flex-1 pr-1 min-w-0">
@@ -1101,7 +1161,9 @@
             const providerColors = {
                 gemini: 'from-blue-500 to-indigo-600',
                 chatgpt: 'from-green-500 to-emerald-600',
-                claude: 'from-orange-500 to-amber-600'
+                groq: 'from-orange-500 to-red-500',
+                openrouter: 'from-violet-500 to-fuchsia-600',
+                mistral: 'from-amber-500 to-orange-600'
             };
 
             const parsedHtml = marked.parse(text);
@@ -1147,14 +1209,16 @@
         }
 
         async function processAiResponse(promptText, chatObj, typingId) {
-            const provider = activeProvider;
+            const provider = chatObj.provider || activeProvider;
             const keys = (apiKeys[provider] || []).filter(Boolean);
             let responseText = null;
             let lastError = null;
             const modelsByProvider = {
                 gemini: ['gemini-3.8-flash', 'gemini-3.7-flash', 'gemini-3.1-flash-lite', 'gemini-3.1-pro', 'gemini-2.5-flash-lite', 'gemini-2.5-flash'],
                 chatgpt: ['gpt-5.6', 'gpt-5.6-mini', 'gpt-5.6-nano', 'gpt-5', 'gpt-4.1-mini', 'gpt-4o-mini'],
-                claude: ['claude-sonnet-4-20250514', 'claude-opus-4-20250514', 'claude-3-5-haiku', 'claude-3-5-sonnet', 'claude-3-opus']
+                groq: ['llama-3.3-70b-versatile', 'openai/gpt-oss-20b', 'openai/gpt-oss-120b'],
+                openrouter: ['openrouter/free', 'google/gemma-4-26b-a4b-it:free', 'nvidia/nemotron-3-super:free'],
+                mistral: ['mistral-large-latest', 'mistral-medium-latest', 'mistral-small-latest']
             };
             const requestedModel = selectedModelId;
             const models = [requestedModel, ...(modelsByProvider[provider] || [])].filter((m, i, a) => m && a.indexOf(m) === i);
@@ -1164,8 +1228,8 @@
                 content: typeof m.content === 'string' ? m.content : ''
             }));
 
-            const userContext = currentUser?.name ? `\nІм'я користувача: ${currentUser.name}. Використовуй його лише природно, коли це доречно.` : '';
-            const system = `${systemInstructions}${userContext}\n\nВАЖЛИВО: відповідь має бути готовою відповіддю користувачу, без службових коментарів про обробку запиту.`;
+            const personalContext = systemInstructions ? `\n\nПерсональні інструкції користувача:\n${systemInstructions}` : '';
+            const system = `${BASE_SYSTEM_INSTRUCTIONS}${personalContext}\n\nВАЖЛИВО: відповідь має бути готовою відповіддю користувачу, без службових коментарів про обробку запиту.`;
 
             if (!keys.length) {
                 lastError = new Error(`Для ${provider.toUpperCase()} не задано API-ключів.`);
@@ -1223,26 +1287,36 @@
                                     (data?.output || []).flatMap(x => x?.content || []).filter(x => x?.type === 'output_text').map(x => x.text || '').join('').trim();
                             }
 
-                            if (provider === 'claude') {
-                                res = await fetch('https://api.anthropic.com/v1/messages', {
+                            if (provider === 'groq' || provider === 'openrouter' || provider === 'mistral') {
+                                const endpoints = {
+                                    groq: 'https://api.groq.com/openai/v1/chat/completions',
+                                    openrouter: 'https://openrouter.ai/api/v1/chat/completions',
+                                    mistral: 'https://api.mistral.ai/v1/chat/completions'
+                                };
+                                const headers = {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${apiKey}`
+                                };
+                                if (provider === 'openrouter') {
+                                    headers['HTTP-Referer'] = window.location.href;
+                                    headers['X-OpenRouter-Title'] = 'AI Assistant';
+                                }
+                                res = await fetch(endpoints[provider], {
                                     method: 'POST',
-                                    headers: {
-                                        'Content-Type': 'application/json',
-                                        'x-api-key': apiKey,
-                                        'anthropic-version': '2023-06-01',
-                                        'anthropic-dangerous-direct-browser-access': 'true'
-                                    },
+                                    headers,
                                     body: JSON.stringify({
                                         model,
-                                        system,
-                                        messages: conversation,
-                                        max_tokens: 4096,
-                                        temperature: 0.7
+                                        messages: [
+                                            { role: 'system', content: system },
+                                            ...conversation
+                                        ],
+                                        temperature: 0.7,
+                                        max_tokens: 4096
                                     })
                                 });
                                 data = await res.json().catch(() => ({}));
-                                if (!res.ok) throw new Error(data?.error?.message || `Claude HTTP ${res.status}`);
-                                responseText = (data?.content || []).filter(x => x.type === 'text').map(x => x.text || '').join('').trim();
+                                if (!res.ok) throw new Error(data?.error?.message || data?.message || `${provider.toUpperCase()} HTTP ${res.status}`);
+                                responseText = data?.choices?.[0]?.message?.content?.trim();
                             }
 
                             if (responseText) {
@@ -1285,8 +1359,10 @@
         }
 
         function updateSettingsProviderButtons() {
-            ['gemini', 'chatgpt', 'claude'].forEach(p => {
-                const btn = document.getElementById('providerBtn' + (p === 'gemini' ? 'Gemini' : (p === 'chatgpt' ? 'ChatGPT' : 'Claude')));
+            const buttonIds = { gemini: 'Gemini', chatgpt: 'ChatGPT', groq: 'Groq', openrouter: 'OpenRouter', mistral: 'Mistral' };
+            Object.entries(buttonIds).forEach(([p, suffix]) => {
+                const btn = document.getElementById('providerBtn' + suffix);
+                if (!btn) return;
                 if (p === activeProvider) {
                     btn.className = "p-3.5 rounded-2xl border-2 border-blue-500 bg-blue-500/10 flex flex-col items-center gap-2 transition-all font-bold text-blue-500";
                 } else {
